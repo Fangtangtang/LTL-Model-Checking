@@ -3,8 +3,17 @@ project(LTL_Model_Checking)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(LTL_Model_Checking main.cpp parser/LTLLexer.cpp parser/LTLParser.cpp)
+# "path/to/install/antlr4/runtime/Cpp"
+set(ANTLR4_RUNTIME_PATH "/usr/include/antlr4/runtime/Cpp")
 
-target_include_directories(LTL_Model_Checking PRIVATE /usr/include/antlr4/runtime/Cpp/usr/local/include/antlr4-runtime)
-target_link_directories(LTL_Model_Checking PRIVATE /usr/include/antlr4/runtime/Cpp/usr/local/lib)
+add_executable(LTL_Model_Checking
+        main.cpp
+        parser/LTLLexer.cpp parser/LTLParser.cpp
+        formula/formula.hpp
+        transition_system/ap.hpp
+        utils/exception.hpp
+)
+
+target_include_directories(LTL_Model_Checking PRIVATE ${ANTLR4_RUNTIME_PATH}/usr/local/include/antlr4-runtime)
+target_link_directories(LTL_Model_Checking PRIVATE ${ANTLR4_RUNTIME_PATH}/usr/local/lib)
 target_link_libraries(LTL_Model_Checking antlr4-runtime)

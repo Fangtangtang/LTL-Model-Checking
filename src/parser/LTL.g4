@@ -26,6 +26,7 @@ formula:
     | Eventually formula                #EventuallyFormula
     | formula Until formula             #UntilFormula
     ;
+
 /*
    LEXER
    =====================================================================================================================
