@@ -11,6 +11,10 @@ public:
     explicit AtomicProposition(std::string ap) {
         name = std::move(ap);
     }
+
+    [[nodiscard]] std::string toString() const noexcept {
+        return name;
+    }
 };
 
 #endif //LTL_MODEL_CHECKING_AP_HPP

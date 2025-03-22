@@ -9,7 +9,7 @@
 #include "formula/formula.hpp"
 #include "utils/exception.hpp"
 
-std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parse_formulas(antlr4::ANTLRInputStream inputStream) {
+std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(antlr4::ANTLRInputStream inputStream) {
     LTLLexer lexer(&inputStream);
     antlr4::CommonTokenStream tokens(&lexer);
     LTLParser parser(&tokens);
@@ -31,31 +31,36 @@ std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parse_formulas(antlr4:
     if (tree->children.size() != system_formula_number + state_formula_number + 3) {
         throw InvalidRequestError("The number of formulas should be consistent with the request number");
     }
-    std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> formulas;
+
+    FormulaBuilder formulaBuilder;
 
     size_t iter = 2;
     for (size_t i = 0; i < system_formula_number; ++i) {
-        antlr4::tree::ParseTree *formula_tree = tree->children.at(iter);
-        std::cout << formula_tree->getText() << "\n";
-        // TODO: parse
+        formulaBuilder.parseSystem_formula(tree->children.at(iter));
         ++iter;
     }
 
     for (size_t i = 0; i < state_formula_number; ++i) {
-        antlr4::tree::ParseTree *formula_tree = tree->children.at(iter);
-        std::cout << formula_tree->getText() << "\n";
-        int state_id;
-        try {
-            std::size_t pos;
-            state_id = std::stoi(formula_tree->children[0]->getText(), &pos);
-        } catch (...) {
-            throw InvalidRequestError("The first two input string the state id");
-        }
-        // TODO: parse
+        formulaBuilder.parseState_formula(tree->children.at(iter));
         ++iter;
     }
+    formulaBuilder.printFormulas();
     // TODO
-    return formulas;
+    return formulaBuilder.formulas;
+}
+
+bool check(const std::pair<int, std::shared_ptr<FormulaBase>> &formula) {
+
+    // TODO
+    // Build GNBA
+
+    // Build NBA
+
+    // TS (x) NBA
+
+    // checking algorithm
+
+    return formula.first >= 0;
 }
 
 int main() {
@@ -67,15 +72,22 @@ int main() {
         }
 
         antlr4::ANTLRInputStream formulaStream(file);
-        std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> formulas = parse_formulas(formulaStream);
+        std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> formulas = parseFormulas(formulaStream);
 
-        //  TODO
+        // TODO: build TS
 
-
+        for (const auto &formula: formulas) {
+            if (check(formula)) {
+                std::cout << 1 << "\n";
+            } else {
+                std::cout << 0 << "\n";
+            }
+        }
     } catch (const Exception &e) {
         std::cerr << e.what() << std::endl;
-    } catch (...) {
-        std::cerr << "Unknown error occurred!" << std::endl;
     }
+//    catch (...) {
+//        std::cerr << "Unknown error occurred!" << std::endl;
+//    }
     return 0;
 }
