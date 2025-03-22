@@ -9,9 +9,7 @@ set(ANTLR4_RUNTIME_PATH "/usr/include/antlr4/runtime/Cpp")
 add_executable(LTL_Model_Checking
         main.cpp
         parser/LTLLexer.cpp parser/LTLParser.cpp
-        formula/formula.hpp
-        transition_system/ap.hpp
-        utils/exception.hpp
+        utils/formula.hpp utils/ts.hpp utils/exception.hpp
 )
 
 target_include_directories(LTL_Model_Checking PRIVATE ${ANTLR4_RUNTIME_PATH}/usr/local/include/antlr4-runtime)

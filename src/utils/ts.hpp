@@ -1,5 +1,5 @@
-#ifndef LTL_MODEL_CHECKING_AP_HPP
-#define LTL_MODEL_CHECKING_AP_HPP
+#ifndef LTL_MODEL_CHECKING_TS_HPP
+#define LTL_MODEL_CHECKING_TS_HPP
 
 #include <string>
 #include <utility>
@@ -17,4 +17,4 @@ public:
     }
 };
 
-#endif //LTL_MODEL_CHECKING_AP_HPP
+#endif //LTL_MODEL_CHECKING_TS_HPP

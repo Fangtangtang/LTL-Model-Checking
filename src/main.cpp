@@ -6,7 +6,7 @@
 
 #include "parser/LTLLexer.h"
 #include "parser/LTLParser.h"
-#include "formula/formula.hpp"
+#include "utils/formula.hpp"
 #include "utils/exception.hpp"
 
 std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(antlr4::ANTLRInputStream inputStream) {
@@ -39,13 +39,11 @@ std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(antlr4::
         formulaBuilder.parseSystem_formula(tree->children.at(iter));
         ++iter;
     }
-
     for (size_t i = 0; i < state_formula_number; ++i) {
         formulaBuilder.parseState_formula(tree->children.at(iter));
         ++iter;
     }
     formulaBuilder.printFormulas();
-    // TODO
     return formulaBuilder.formulas;
 }
 
@@ -77,6 +75,12 @@ int main() {
         // TODO: build TS
 
         for (const auto &formula: formulas) {
+            auto closure = formula.second->getClosure();
+            std::cout << "===Closure===\n";
+            for (const auto &phi: closure) {
+                std::cout << phi->toString() << "\n";
+            }
+            std::cout << "======\n";
             if (check(formula)) {
                 std::cout << 1 << "\n";
             } else {
