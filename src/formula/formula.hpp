@@ -155,72 +155,111 @@ public:
         for (const auto &formula: formulas) {
             if (formula.first >= 0) {
                 std::cout << formula.first << "\t";
+            } else{
+                std::cout << "TS\t";
             }
             std::cout << formula.second->toString() << "\n";
         }
     }
 
 private:
+    std::any visitSystem_formula(LTLParser::System_formulaContext *ctx) override {
+        return std::static_pointer_cast<FormulaBase>(
+                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()))
+        );
+    }
+
+    std::any visitState_formula(LTLParser::State_formulaContext *ctx) override {
+        return std::static_pointer_cast<FormulaBase>(
+                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()))
+        );
+    }
+
     std::any visitNegationFormula(LTLParser::NegationFormulaContext *ctx) override {
-        return std::make_shared<NegationFormula>(
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula())));
+        return std::static_pointer_cast<FormulaBase>(
+                std::make_shared<NegationFormula>(
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()))
+                )
+        );
     }
 
     std::any visitBracketFormula(LTLParser::BracketFormulaContext *ctx) override {
-        return this->visit(ctx->formula());
+        return std::static_pointer_cast<FormulaBase>(
+                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()))
+        );
     }
 
     std::any visitAlwaysFormula(LTLParser::AlwaysFormulaContext *ctx) override {
-        return std::make_shared<AlwaysFormula>(
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula())));
-
+        return std::static_pointer_cast<FormulaBase>(
+                std::make_shared<AlwaysFormula>(
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()))
+                )
+        );
     }
 
     std::any visitUntilFormula(LTLParser::UntilFormulaContext *ctx) override {
-        return std::make_shared<UntilFormula>(
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0))),
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1)))
+        return std::static_pointer_cast<FormulaBase>(
+                std::make_shared<UntilFormula>(
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0))),
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1)))
+                )
         );
     }
 
     std::any visitEventuallyFormula(LTLParser::EventuallyFormulaContext *ctx) override {
-        return std::make_shared<EventuallyFormula>(
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula())));
+        return std::static_pointer_cast<FormulaBase>(
+                std::make_shared<EventuallyFormula>(
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()))
+                )
+        );
     }
 
     std::any visitAtomicPropositionFormula(LTLParser::AtomicPropositionFormulaContext *ctx) override {
-        return std::make_shared<AtomicFormula>(
-                std::any_cast<std::shared_ptr<AtomicProposition>>(ctx->getText()), false
+        return std::static_pointer_cast<FormulaBase>(
+                std::make_shared<AtomicFormula>(
+                        std::make_shared<AtomicProposition>(ctx->getText()), false
+                )
         );
     }
 
     std::any visitDisjunctionFormula(LTLParser::DisjunctionFormulaContext *ctx) override {
-        return std::make_shared<DisjunctionFormula>(
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0))),
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1)))
+        return std::static_pointer_cast<FormulaBase>(
+                std::make_shared<DisjunctionFormula>(
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0))),
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1)))
+                )
         );
     }
 
     std::any visitTrueFormula(LTLParser::TrueFormulaContext *ctx) override {
-        return std::make_shared<AtomicFormula>(nullptr, true);
+        return std::static_pointer_cast<FormulaBase>(
+                std::make_shared<AtomicFormula>(nullptr, true)
+        );
     }
 
     std::any visitImplicationFormula(LTLParser::ImplicationFormulaContext *ctx) override {
-        return std::make_shared<ImplicationFormula>(
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0))),
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1)))
+        return std::static_pointer_cast<FormulaBase>(
+                std::make_shared<ImplicationFormula>(
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0))),
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1)))
+                )
         );
     }
 
     std::any visitNextFormula(LTLParser::NextFormulaContext *ctx) override {
-        return std::make_shared<NextFormula>(
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula())));
+        return std::static_pointer_cast<FormulaBase>(
+                std::make_shared<NextFormula>(
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()))
+                )
+        );
     }
 
     std::any visitConjunctionFormula(LTLParser::ConjunctionFormulaContext *ctx) override {
-        return std::make_shared<ConjunctionFormula>(
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0))),
-                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1)))
+        return std::static_pointer_cast<FormulaBase>(
+                std::make_shared<ConjunctionFormula>(
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0))),
+                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1)))
+                )
         );
     }
 };
