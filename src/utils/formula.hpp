@@ -19,13 +19,19 @@ public:
 public:
     ~FormulaBase() = default;
 
-    std::map<std::string, std::shared_ptr<FormulaBase>> getClosure();
+    std::map<std::string, std::shared_ptr<FormulaBase>> getClosure(bool brief_string);
 
     void assignId(int validId) {
+        if (id >= 0 && validId != id) {
+            throw RuntimeError("Use an invalid id");
+        }
         id = validId;
     }
 
     int getId() const {
+        if (id < 0) {
+            throw RuntimeError("Use an invalid id");
+        }
         return id;
     }
 
@@ -41,7 +47,7 @@ public:
 
     [[nodiscard]] virtual std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const = 0;
 
-    [[nodiscard]] virtual std::string toString() const noexcept = 0;
+    [[nodiscard]] virtual std::string toString(bool brief) const noexcept = 0;
 };
 
 
@@ -64,7 +70,10 @@ public:
         return {};
     }
 
-    [[nodiscard]] std::string toString() const noexcept override {
+    [[nodiscard]] std::string toString(bool brief) const noexcept override {
+        if (brief) {
+            return isTrue ? "True" : atomicProposition->toString();
+        }
         return "[\033[33mAtomic \033[0m" + (isTrue ? "True" : atomicProposition->toString()) + "]";
     }
 };
@@ -80,8 +89,12 @@ public:
         return {left_formula, right_formula};
     }
 
-    [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mConjunction \033[0m" + left_formula->toString() + " ∧ " + right_formula->toString() + "]";
+    [[nodiscard]] std::string toString(bool brief) const noexcept override {
+        if (brief) {
+            return "(" + left_formula->toString(brief) + " ∧ " + right_formula->toString(brief) + ")";
+        }
+        return "[\033[33mConjunction \033[0m" + left_formula->toString(brief) + " ∧ " + right_formula->toString(brief) +
+               "]";
     }
 };
 
@@ -97,8 +110,12 @@ public:
         return {left_formula, right_formula};
     }
 
-    [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mDisjunction \033[0m" + left_formula->toString() + " ∨ " + right_formula->toString() + "]";
+    [[nodiscard]] std::string toString(bool brief) const noexcept override {
+        if (brief) {
+            return "(" + left_formula->toString(brief) + " ∨ " + right_formula->toString(brief) + ")";
+        }
+        return "[\033[33mDisjunction \033[0m" + left_formula->toString(brief) + " ∨ " + right_formula->toString(brief) +
+               "]";
     }
 };
 
@@ -113,8 +130,12 @@ public:
         return {left_formula, right_formula};
     }
 
-    [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mImplication \033[0m" + left_formula->toString() + " → " + right_formula->toString() + "]";
+    [[nodiscard]] std::string toString(bool brief) const noexcept override {
+        if (brief) {
+            return "(" + left_formula->toString(brief) + " → " + right_formula->toString(brief) + ")";
+        }
+        return "[\033[33mImplication \033[0m" + left_formula->toString(brief) + " → " + right_formula->toString(brief) +
+               "]";
     }
 };
 
@@ -131,8 +152,11 @@ public:
         return {sub_formula};
     }
 
-    [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mNegation \033[0m!" + sub_formula->toString() + "]";
+    [[nodiscard]] std::string toString(bool brief) const noexcept override {
+        if (brief) {
+            return "(!" + sub_formula->toString(brief) + ")";
+        }
+        return "[\033[33mNegation \033[0m!" + sub_formula->toString(brief) + "]";
     }
 };
 
@@ -147,8 +171,11 @@ public:
         return {sub_formula};
     }
 
-    [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mNext \033[0m○" + sub_formula->toString() + "]";
+    [[nodiscard]] std::string toString(bool brief) const noexcept override {
+        if (brief) {
+            return "(○" + sub_formula->toString(brief) + ")";
+        }
+        return "[\033[33mNext \033[0m○" + sub_formula->toString(brief) + "]";
     }
 };
 
@@ -163,8 +190,11 @@ public:
         return {sub_formula};
     }
 
-    [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mAlways \033[0m▢" + sub_formula->toString() + "]";
+    [[nodiscard]] std::string toString(bool brief) const noexcept override {
+        if (brief) {
+            return "(▢" + sub_formula->toString(brief) + ")";
+        }
+        return "[\033[33mAlways \033[0m▢" + sub_formula->toString(brief) + "]";
     }
 };
 
@@ -179,8 +209,11 @@ public:
         return {sub_formula};
     }
 
-    [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mEventually \033[0m◇" + sub_formula->toString() + "]";
+    [[nodiscard]] std::string toString(bool brief) const noexcept override {
+        if (brief) {
+            return "(◇" + sub_formula->toString(brief) + ")";
+        }
+        return "[\033[33mEventually \033[0m◇" + sub_formula->toString(brief) + "]";
     }
 };
 
@@ -195,12 +228,15 @@ public:
         return {left_formula, right_formula};
     }
 
-    [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mUntil \033[0m" + left_formula->toString() + " ∪ " + right_formula->toString() + "]";
+    [[nodiscard]] std::string toString(bool brief) const noexcept override {
+        if (brief) {
+            return "(" + left_formula->toString(brief) + " ∪ " + right_formula->toString(brief) + ")";
+        }
+        return "[\033[33mUntil \033[0m" + left_formula->toString(brief) + " ∪ " + right_formula->toString(brief) + "]";
     }
 };
 
-std::map<std::string, std::shared_ptr<FormulaBase>> FormulaBase::getClosure() {
+std::map<std::string, std::shared_ptr<FormulaBase>> FormulaBase::getClosure(bool brief_string) {
     std::map<std::string, std::shared_ptr<FormulaBase>> closure;
     std::shared_ptr<FormulaBase> this_formula = shared_from_this(), neg_formula;
     if (this_formula->negation != nullptr) {
@@ -208,14 +244,14 @@ std::map<std::string, std::shared_ptr<FormulaBase>> FormulaBase::getClosure() {
     } else {
         neg_formula = std::static_pointer_cast<FormulaBase>(std::make_shared<NegationFormula>(this_formula));
     }
-    closure.emplace(this_formula->toString(), this_formula);
-    closure.emplace(neg_formula->toString(), neg_formula);
+    closure.emplace(this_formula->toString(brief_string), this_formula);
+    closure.emplace(neg_formula->toString(brief_string), neg_formula);
     for (const auto &sub_formula: getSubFormula()) {
-        auto sub_formula_closure = sub_formula->getClosure();
+        auto sub_formula_closure = sub_formula->getClosure(brief_string);
         closure.insert(sub_formula_closure.begin(), sub_formula_closure.end());
     }
-    std::shared_ptr<FormulaBase> this_in_closure = closure.at(this_formula->toString()),
-            neg_in_closure = closure.at(neg_formula->toString());
+    std::shared_ptr<FormulaBase> this_in_closure = closure.at(this_formula->toString(brief_string)),
+            neg_in_closure = closure.at(neg_formula->toString(brief_string));
     this_in_closure->negation = neg_in_closure;
     neg_in_closure->negation = this_in_closure;
     return closure;
@@ -244,14 +280,14 @@ public:
         formulas.emplace_back(state_id, formula_ptr);
     }
 
-    void printFormulas() {
+    void printFormulas(bool brief) {
         for (const auto &formula: formulas) {
             if (formula.first >= 0) {
                 std::cout << formula.first << "\t";
             } else {
                 std::cout << "TS\t";
             }
-            std::cout << formula.second->toString() << "\n";
+            std::cout << formula.second->toString(brief) << "\n";
         }
     }
 

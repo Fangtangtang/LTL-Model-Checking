@@ -40,7 +40,7 @@ CS3959 course project
          0 2
          0 1
       ```
-    - `benchmark.txt` Sample
+   - `benchmark.txt` Sample
       ```txt
       1 3
       G(a \/ b)
@@ -61,7 +61,7 @@ CS3959 course project
 
 ## Prerequisite
 ### Antlr 4
-1. Download ANTLR. 
+1. Download ANTLR:
 I use `antlr-4.12.0-complete.jar` for this project which can be found in `https://github.com/antlr/website-antlr4/tree/gh-pages/download`.
 
 2. [Compile and install C++ runtime support](https://github.com/antlr/antlr4/tree/master/runtime/Cpp#compiling-on-linux)
@@ -74,3 +74,6 @@ I use `antlr-4.12.0-complete.jar` for this project which can be found in `https:
    make
    sudo DESTDIR=path/to/install/antlr4/runtime/Cpp make install
    ```
+
+
+The install directory `DESTDIR` should be compatiable with `ANTLR4_RUNTIME_PATH` in [`CMakeList.txt`](src/CMakeLists.txt).

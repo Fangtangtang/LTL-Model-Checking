@@ -10,7 +10,7 @@
 
 template<typename StateType, typename TransitCondition>
 class Automata {
-private:
+protected:
     std::unordered_set<StateType, typename StateType::Hash> state; // Q
     std::unordered_set<StateType, typename StateType::Hash> initial_state; // Q_0
     std::unordered_set<StateType, typename StateType::Hash> accepting_state; // F
@@ -43,9 +43,12 @@ public:
 
 // subset of Closure(φ)
 class ElementarySet {
+public:
     std::unordered_set<int> element; // ids of the formulas
+
 public:
     explicit ElementarySet(std::unordered_set<int> element_) : element(std::move(element_)) {}
+
 
     bool operator==(const ElementarySet &other) const noexcept {
         return element == other.element;
@@ -70,12 +73,24 @@ private:
     std::vector<std::shared_ptr<FormulaBase>> formula_closure;
     std::unordered_set<int> until_formula_ids;
 private:
+
+    void reformat(const std::shared_ptr<FormulaBase> &formula, std::map<std::string, int> stringToId,
+                  bool use_brief_string) {
+        formula->assignId(stringToId[formula->toString(use_brief_string)]);
+        for (const auto &sub_formula: formula->getSubFormula()) {
+            reformat(sub_formula, stringToId, use_brief_string);
+        }
+    }
+
     void getClosure() {
-        std::map<std::string, std::shared_ptr<FormulaBase>> closure = phi->getClosure();
+        bool use_brief_string = true;
+        std::map<std::string, std::shared_ptr<FormulaBase>> closure = phi->getClosure(use_brief_string);
+        std::map<std::string, int> stringToId;
         int validCnt = 0;
         for (const auto &sub_formula: closure) {
             sub_formula.second->assignId(validCnt);
             formula_closure.push_back(sub_formula.second);
+            stringToId.emplace(sub_formula.first, validCnt);
             if (auto atomic = std::dynamic_pointer_cast<AtomicFormula>(sub_formula.second)) {
                 if (atomic->isTrueFormula()) {
                     true_formula_id = validCnt;
@@ -85,10 +100,14 @@ private:
             }
             validCnt++;
         }
+        // reformat to ensure all sub formulas are in the closure
+        for (const auto &sub_formula: closure) {
+            reformat(sub_formula.second, stringToId, use_brief_string);
+        }
         // ------------------------------------------------------
         std::cout << "===Closure===\n";
         for (const auto &sub_formula: closure) {
-            std::cout << sub_formula.second->toString() << "\n";
+            std::cout << sub_formula.second->toString(true) << "\n";
         }
         std::cout << "======\n";
         // ------------------------------------------------------
@@ -109,16 +128,17 @@ private:
         }
         for (const auto &formula: formula_closure) {
             // ψ ∈ B ⇔ !ψ ∉ B, only one holds
-            if (ids.count(formula->getId()) + ids.count(formula->negation->getId()) > 1) {
+            if (ids.count(formula->getId()) + ids.count(formula->negation->getId()) != 1) {
                 return false;
             }
             // ψ1 ∧ ψ2 ∈ B ⇔ ψ1 ∈ B and ψ2 ∈ B, none or all
             if (auto ptr = std::dynamic_pointer_cast<ConjunctionFormula>(formula)) {
-                auto cnt = ids.count(formula->getId());
+                size_t left_cnt = ids.count(formula->getId());
+                size_t right_cnt = 0;
                 for (const auto &sub_formula: ptr->getSubFormula()) {
-                    cnt += ids.count(sub_formula->getId());
+                    right_cnt += ids.count(sub_formula->getId());
                 }
-                if (cnt != 3 && cnt != 0) {
+                if ((left_cnt == 1 && right_cnt != 2) || (right_cnt == 2 && left_cnt == 0)) {
                     return false;
                 }
             }
@@ -140,7 +160,7 @@ private:
         return true;
     }
 
-    void buildElementarySet() {
+    void buildStates() {
         auto closure_size = formula_closure.size();
         for (int mask = 0; mask < 1 << closure_size; ++mask) {
             std::vector<std::shared_ptr<FormulaBase>> subset;
@@ -174,8 +194,43 @@ public:
     explicit GNBA(const std::shared_ptr<FormulaBase> &formula) : phi(formula) {
         // Find Elementary Sets
         getClosure();
-        buildElementarySet();
+        buildStates();
+        printStates(true);
+    }
 
+    void printStates(bool brief) {
+        std::cout << "=== States ===\t" << state.size() << "\n";
+        for (const auto &state_: state) {
+            std::cout << "{\n";
+            for (auto formula_id: state_.element) {
+                auto formula = formula_closure[formula_id];
+                std::cout << "\t" << formula_id << "\t" << formula->toString(brief) << ",\n";
+            }
+            std::cout << "}\n";
+        }
+        std::cout << "=== === ===\n";
+
+        std::cout << "=== Init States ===\t" << initial_state.size() << "\n";
+        for (const auto &state_: initial_state) {
+            std::cout << "{\n";
+            for (auto formula_id: state_.element) {
+                auto formula = formula_closure[formula_id];
+                std::cout << "\t" << formula_id << "\t" << formula->toString(brief) << ",\n";
+            }
+            std::cout << "}\n";
+        }
+        std::cout << "=== === ===\n";
+
+        std::cout << "=== Final States ===\t" << accepting_state.size() << "\n";
+        for (const auto &state_: accepting_state) {
+            std::cout << "{\n";
+            for (auto formula_id: state_.element) {
+                auto formula = formula_closure[formula_id];
+                std::cout << "\t" << formula_id << "\t" << formula->toString(brief) << ",\n";
+            }
+            std::cout << "}\n";
+        }
+        std::cout << "=== === ===\n";
     }
 };
 

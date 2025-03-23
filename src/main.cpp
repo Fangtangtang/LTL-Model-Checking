@@ -44,7 +44,7 @@ std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(antlr4::
         formulaBuilder.parseStateFormula(tree->children.at(iter));
         ++iter;
     }
-    formulaBuilder.printFormulas();
+    formulaBuilder.printFormulas(true);
     return formulaBuilder.formulas;
 }
 
