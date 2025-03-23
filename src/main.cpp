@@ -9,9 +9,12 @@
 #include "utils/formula.hpp"
 #include "utils/exception.hpp"
 #include "utils/automata.hpp"
+#include "utils/ts.hpp"
 
-std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(antlr4::ANTLRInputStream inputStream) {
-    LTLLexer lexer(&inputStream);
+std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(
+        antlr4::ANTLRInputStream stream, const TransitionSystem& ts
+) {
+    LTLLexer lexer(&stream);
     antlr4::CommonTokenStream tokens(&lexer);
     LTLParser parser(&tokens);
 
@@ -33,7 +36,7 @@ std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(antlr4::
         throw InvalidRequestError("The number of formulas should be consistent with the request number");
     }
 
-    FormulaBuilder formulaBuilder;
+    FormulaBuilder formulaBuilder(ts);
 
     size_t iter = 2;
     for (size_t i = 0; i < system_formula_number; ++i) {
@@ -64,16 +67,17 @@ bool check(const std::pair<int, std::shared_ptr<FormulaBase>> &formula) {
 
 int main() {
     try {
-        std::ifstream file("/mnt/f/repo/LTL-Model-Checking/testcases/LTL-formulas.txt");
-        if (!file) {
-            std::cerr << "Failed to open file\n";
+        TransitionSystem transition_system("/mnt/f/repo/LTL-Model-Checking/testcases/TS.txt");
+
+        std::ifstream formula_file("/mnt/f/repo/LTL-Model-Checking/testcases/LTL-formulas.txt");
+        if (!formula_file) {
+            std::cerr << "Failed to open formula_file\n";
             return 1;
         }
 
-        antlr4::ANTLRInputStream formula_stream(file);
-        std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> formulas = parseFormulas(formula_stream);
-
-        // TODO: build TS
+        antlr4::ANTLRInputStream formula_stream(formula_file);
+        std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> formulas = parseFormulas(
+                formula_stream, transition_system);
 
         for (const auto &formula: formulas) {
             std::shared_ptr<FormulaBase> negation_formula;

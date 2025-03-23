@@ -72,6 +72,8 @@ private:
     int true_formula_id = -1;
     std::vector<std::shared_ptr<FormulaBase>> formula_closure;
     std::unordered_set<int> until_formula_ids;
+
+    std::unordered_set<int> AP_ids;
 private:
 
     void reformat(const std::shared_ptr<FormulaBase> &formula, std::map<std::string, int> stringToId,
@@ -82,7 +84,7 @@ private:
         }
     }
 
-    void getClosure() {
+    void getClosureAndAP() {
         bool use_brief_string = true;
         std::map<std::string, std::shared_ptr<FormulaBase>> closure = phi->getClosure(use_brief_string);
         std::map<std::string, int> stringToId;
@@ -94,6 +96,8 @@ private:
             if (auto atomic = std::dynamic_pointer_cast<AtomicFormula>(sub_formula.second)) {
                 if (atomic->isTrueFormula()) {
                     true_formula_id = validCnt;
+                } else {
+                    AP_ids.emplace(validCnt);
                 }
             } else if (auto until = std::dynamic_pointer_cast<UntilFormula>(sub_formula.second)) {
                 until_formula_ids.emplace(validCnt);
@@ -110,7 +114,16 @@ private:
             std::cout << sub_formula.second->toString(true) << "\n";
         }
         std::cout << "======\n";
+        std::cout << "===AP===\n";
+        for (const auto &ap: AP_ids) {
+            std::cout << formula_closure[ap]->toString(true) << "\n";
+        }
+        std::cout << "======\n";
         // ------------------------------------------------------
+    }
+
+    void buildAlphabet() {
+        // TODO
     }
 
     /**
@@ -193,9 +206,11 @@ public:
     // build GNBA
     explicit GNBA(const std::shared_ptr<FormulaBase> &formula) : phi(formula) {
         // Find Elementary Sets
-        getClosure();
+        getClosureAndAP();
+        buildAlphabet();
         buildStates();
         printStates(true);
+        // TODO: alphabet and transition
     }
 
     void printStates(bool brief) {

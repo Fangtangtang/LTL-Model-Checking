@@ -23,7 +23,7 @@ public:
 
     void assignId(int validId) {
         if (id >= 0 && validId != id) {
-            throw RuntimeError("Use an invalid id");
+            throw RuntimeError("Assign an invalid id");
         }
         id = validId;
     }
@@ -258,9 +258,15 @@ std::map<std::string, std::shared_ptr<FormulaBase>> FormulaBase::getClosure(bool
 }
 
 class FormulaBuilder : public LTLBaseVisitor {
+private:
+    const TransitionSystem &ts;
+
 public:
     std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> formulas;
+
 public:
+    explicit FormulaBuilder(const TransitionSystem &transitionSystem) : ts(transitionSystem) {}
+
     void parseSystemFormula(antlr4::tree::ParseTree *formula_tree) {
         std::cout << formula_tree->getText() << "\n";
         auto formula_ptr = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(formula_tree));
@@ -346,9 +352,7 @@ private:
 
     std::any visitAtomicPropositionFormula(LTLParser::AtomicPropositionFormulaContext *ctx) override {
         return std::static_pointer_cast<FormulaBase>(
-                std::make_shared<AtomicFormula>(
-                        std::make_shared<AtomicProposition>(ctx->getText()), false
-                )
+                std::make_shared<AtomicFormula>(ts.getAtomicProposition(ctx->getText()), false)
         );
     }
 
