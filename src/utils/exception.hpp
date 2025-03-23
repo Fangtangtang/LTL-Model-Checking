@@ -31,4 +31,10 @@ public:
     explicit InvalidRequestError(const std::string &msg)
             : Exception("\033[31mInvalidRequest: \033[0m" + msg) {}
 };
+
+class RuntimeError : public Exception {
+public:
+    explicit RuntimeError(const std::string &msg)
+            : Exception("\033[31mRuntime: \033[0m" + msg) {}
+};
 #endif //LTL_MODEL_CHECKING_EXCEPTION_HPP

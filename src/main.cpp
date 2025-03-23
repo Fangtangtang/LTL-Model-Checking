@@ -37,11 +37,11 @@ std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(antlr4::
 
     size_t iter = 2;
     for (size_t i = 0; i < system_formula_number; ++i) {
-        formulaBuilder.parseSystem_formula(tree->children.at(iter));
+        formulaBuilder.parseSystemFormula(tree->children.at(iter));
         ++iter;
     }
     for (size_t i = 0; i < state_formula_number; ++i) {
-        formulaBuilder.parseState_formula(tree->children.at(iter));
+        formulaBuilder.parseStateFormula(tree->children.at(iter));
         ++iter;
     }
     formulaBuilder.printFormulas();
@@ -70,14 +70,19 @@ int main() {
             return 1;
         }
 
-        antlr4::ANTLRInputStream formulaStream(file);
-        std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> formulas = parseFormulas(formulaStream);
+        antlr4::ANTLRInputStream formula_stream(file);
+        std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> formulas = parseFormulas(formula_stream);
 
         // TODO: build TS
 
         for (const auto &formula: formulas) {
-            std::shared_ptr<NegationFormula> negationFormula = std::make_shared<NegationFormula>(formula.second);
-            GNBA gnba = GNBA(negationFormula);
+            std::shared_ptr<FormulaBase> negation_formula;
+            if (formula.second->negation != nullptr) {
+                negation_formula = formula.second->negation;
+            } else {
+                negation_formula = std::make_shared<NegationFormula>(formula.second);
+            }
+            GNBA gnba = GNBA(negation_formula);
             // TODO: NBA
             if (check(formula)) {
                 std::cout << 1 << "\n";

@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_set>
+#include <map>
 #include "antlr4-runtime.h"
 #include "../parser/LTLBaseVisitor.h"
 #include "ts.hpp"
@@ -11,6 +12,10 @@
 
 class FormulaBase : public std::enable_shared_from_this<FormulaBase> {
     int id = -1;
+
+public:
+    std::shared_ptr<FormulaBase> negation = nullptr;
+
 public:
     ~FormulaBase() = default;
 
@@ -20,7 +25,11 @@ public:
         }
     };
 
-    std::unordered_set<std::shared_ptr<FormulaBase>, Hash> getClosure();
+    std::shared_ptr<FormulaBase> getNegation() const {
+        return negation;
+    }
+
+    std::map<std::string, std::shared_ptr<FormulaBase>> getClosure();
 
     void assignId(int validId) {
         id = validId;
@@ -54,151 +63,153 @@ public:
 
 class ConjunctionFormula : public FormulaBase {
 private:
-    std::shared_ptr<FormulaBase> leftFormula, rightFormula;
+    std::shared_ptr<FormulaBase> left_formula, right_formula;
 public:
     ConjunctionFormula(std::shared_ptr<FormulaBase> left, std::shared_ptr<FormulaBase> right)
-            : leftFormula(std::move(left)), rightFormula(std::move(right)) {}
+            : left_formula(std::move(left)), right_formula(std::move(right)) {}
 
     [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {leftFormula, rightFormula};
+        return {left_formula, right_formula};
     }
 
     [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mConjunction \033[0m" + leftFormula->toString() + " ∧ " + rightFormula->toString() + "]";
+        return "[\033[33mConjunction \033[0m" + left_formula->toString() + " ∧ " + right_formula->toString() + "]";
     }
 };
 
 class DisjunctionFormula : public FormulaBase {
 private:
-    std::shared_ptr<FormulaBase> leftFormula, rightFormula;
+    std::shared_ptr<FormulaBase> left_formula, right_formula;
 
 public:
     DisjunctionFormula(std::shared_ptr<FormulaBase> left, std::shared_ptr<FormulaBase> right)
-            : leftFormula(std::move(left)), rightFormula(std::move(right)) {}
+            : left_formula(std::move(left)), right_formula(std::move(right)) {}
 
     [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {leftFormula, rightFormula};
+        return {left_formula, right_formula};
     }
 
     [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mDisjunction \033[0m" + leftFormula->toString() + " ∨ " + rightFormula->toString() + "]";
+        return "[\033[33mDisjunction \033[0m" + left_formula->toString() + " ∨ " + right_formula->toString() + "]";
     }
 };
 
 class ImplicationFormula : public FormulaBase {
 private:
-    std::shared_ptr<FormulaBase> leftFormula, rightFormula;
+    std::shared_ptr<FormulaBase> left_formula, right_formula;
 public:
     ImplicationFormula(std::shared_ptr<FormulaBase> left, std::shared_ptr<FormulaBase> right)
-            : leftFormula(std::move(left)), rightFormula(std::move(right)) {}
+            : left_formula(std::move(left)), right_formula(std::move(right)) {}
 
     [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {leftFormula, rightFormula};
+        return {left_formula, right_formula};
     }
 
     [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mImplication \033[0m" + leftFormula->toString() + " → " + rightFormula->toString() + "]";
+        return "[\033[33mImplication \033[0m" + left_formula->toString() + " → " + right_formula->toString() + "]";
     }
 };
 
 class NegationFormula : public FormulaBase {
 private:
-    std::shared_ptr<FormulaBase> subFormula;
+    std::shared_ptr<FormulaBase> sub_formula;
 public:
     explicit NegationFormula(std::shared_ptr<FormulaBase> formula)
-            : subFormula(std::move(formula)) {}
-
-    [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {subFormula};
+            : sub_formula(formula) {
+        negation = formula;
     }
 
-    std::shared_ptr<FormulaBase> getNegation() {
-        return subFormula;
+    [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
+        return {sub_formula};
     }
 
     [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mNegation \033[0m!" + subFormula->toString() + "]";
+        return "[\033[33mNegation \033[0m!" + sub_formula->toString() + "]";
     }
 };
 
 class NextFormula : public FormulaBase {
 private:
-    std::shared_ptr<FormulaBase> subFormula;
+    std::shared_ptr<FormulaBase> sub_formula;
 public:
     explicit NextFormula(std::shared_ptr<FormulaBase> formula)
-            : subFormula(std::move(formula)) {}
+            : sub_formula(std::move(formula)) {}
 
     [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {subFormula};
+        return {sub_formula};
     }
 
     [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mNext \033[0m○" + subFormula->toString() + "]";
+        return "[\033[33mNext \033[0m○" + sub_formula->toString() + "]";
     }
 };
 
 class AlwaysFormula : public FormulaBase {
 private:
-    std::shared_ptr<FormulaBase> subFormula;
+    std::shared_ptr<FormulaBase> sub_formula;
 public:
     explicit AlwaysFormula(std::shared_ptr<FormulaBase> formula)
-            : subFormula(std::move(formula)) {}
+            : sub_formula(std::move(formula)) {}
 
     [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {subFormula};
+        return {sub_formula};
     }
 
     [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mAlways \033[0m▢" + subFormula->toString() + "]";
+        return "[\033[33mAlways \033[0m▢" + sub_formula->toString() + "]";
     }
 };
 
 class EventuallyFormula : public FormulaBase {
 private:
-    std::shared_ptr<FormulaBase> subFormula;
+    std::shared_ptr<FormulaBase> sub_formula;
 public:
     explicit EventuallyFormula(std::shared_ptr<FormulaBase> formula)
-            : subFormula(std::move(formula)) {}
+            : sub_formula(std::move(formula)) {}
 
     [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {subFormula};
+        return {sub_formula};
     }
 
     [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mEventually \033[0m◇" + subFormula->toString() + "]";
+        return "[\033[33mEventually \033[0m◇" + sub_formula->toString() + "]";
     }
 };
 
 class UntilFormula : public FormulaBase {
 private:
-    std::shared_ptr<FormulaBase> leftFormula, rightFormula;
+    std::shared_ptr<FormulaBase> left_formula, right_formula;
 public:
     UntilFormula(std::shared_ptr<FormulaBase> left, std::shared_ptr<FormulaBase> right)
-            : leftFormula(std::move(left)), rightFormula(std::move(right)) {}
+            : left_formula(std::move(left)), right_formula(std::move(right)) {}
 
     [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {leftFormula, rightFormula};
+        return {left_formula, right_formula};
     }
 
     [[nodiscard]] std::string toString() const noexcept override {
-        return "[\033[33mUntil \033[0m" + leftFormula->toString() + " ∪ " + rightFormula->toString() + "]";
+        return "[\033[33mUntil \033[0m" + left_formula->toString() + " ∪ " + right_formula->toString() + "]";
     }
 };
 
-std::unordered_set<std::shared_ptr<FormulaBase>, FormulaBase::Hash> FormulaBase::getClosure() {
-    std::unordered_set<std::shared_ptr<FormulaBase>, FormulaBase::Hash> closure;
-    std::shared_ptr<FormulaBase> thisFormula = shared_from_this(), negFormula;
-    if (auto ptr = std::dynamic_pointer_cast<NegationFormula>(thisFormula)) {
-        negFormula = ptr->getNegation();
+std::map<std::string, std::shared_ptr<FormulaBase>> FormulaBase::getClosure() {
+    std::map<std::string, std::shared_ptr<FormulaBase>> closure;
+    std::shared_ptr<FormulaBase> this_formula = shared_from_this(), neg_formula;
+    if (this_formula->negation != nullptr) {
+        neg_formula = this_formula->negation;
     } else {
-        negFormula = std::static_pointer_cast<FormulaBase>(std::make_shared<NegationFormula>(thisFormula));
+        neg_formula = std::static_pointer_cast<FormulaBase>(std::make_shared<NegationFormula>(this_formula));
     }
-    closure.insert(thisFormula);
-    closure.insert(negFormula);
-    for (const auto &subFormula: getSubFormula()) {
-        auto subFormulaClosure = subFormula->getClosure();
-        closure.insert(subFormulaClosure.begin(), subFormulaClosure.end());
+    closure.emplace(this_formula->toString(), this_formula);
+    closure.emplace(neg_formula->toString(), neg_formula);
+    for (const auto &sub_formula: getSubFormula()) {
+        auto sub_formula_closure = sub_formula->getClosure();
+        closure.insert(sub_formula_closure.begin(), sub_formula_closure.end());
     }
+    std::shared_ptr<FormulaBase> this_in_closure = closure.at(this_formula->toString()),
+            neg_in_closure = closure.at(neg_formula->toString());
+    this_in_closure->negation = neg_in_closure;
+    neg_in_closure->negation = this_in_closure;
     return closure;
 }
 
@@ -206,13 +217,13 @@ class FormulaBuilder : public LTLBaseVisitor {
 public:
     std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> formulas;
 public:
-    void parseSystem_formula(antlr4::tree::ParseTree *formula_tree) {
+    void parseSystemFormula(antlr4::tree::ParseTree *formula_tree) {
         std::cout << formula_tree->getText() << "\n";
-        auto formulaPtr = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(formula_tree));
-        formulas.emplace_back(-1, formulaPtr);
+        auto formula_ptr = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(formula_tree));
+        formulas.emplace_back(-1, formula_ptr);
     }
 
-    void parseState_formula(antlr4::tree::ParseTree *formula_tree) {
+    void parseStateFormula(antlr4::tree::ParseTree *formula_tree) {
         int state_id;
         try {
             std::size_t pos;
@@ -221,8 +232,8 @@ public:
             throw InvalidRequestError("The first two input string the state id");
         }
         std::cout << formula_tree->getText() << "\n";
-        auto formulaPtr = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(formula_tree));
-        formulas.emplace_back(state_id, formulaPtr);
+        auto formula_ptr = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(formula_tree));
+        formulas.emplace_back(state_id, formula_ptr);
     }
 
     void printFormulas() {
@@ -250,11 +261,11 @@ private:
     }
 
     std::any visitNegationFormula(LTLParser::NegationFormulaContext *ctx) override {
-        auto subFormula = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()));
-        if (auto negPtr = std::dynamic_pointer_cast<NegationFormula>(subFormula)) {
-            return negPtr->getNegation();
+        auto sub_formula = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()));
+        if (sub_formula->negation != nullptr) {
+            return sub_formula->negation;
         } else {
-            return std::static_pointer_cast<FormulaBase>(std::make_shared<NegationFormula>(subFormula));
+            return std::static_pointer_cast<FormulaBase>(std::make_shared<NegationFormula>(sub_formula));
         }
     }
 

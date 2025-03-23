@@ -48,17 +48,17 @@ public:
     explicit GNBA(const std::shared_ptr<FormulaBase> &formula) : phi(formula) {
         // Find Elementary Sets
         // - get closure
-        std::unordered_set<std::shared_ptr<FormulaBase>, FormulaBase::Hash> closure = formula->getClosure();
+        std::map<std::string, std::shared_ptr<FormulaBase>>  closure = formula->getClosure();
         int validCnt = 0;
         for (const auto &sub_formula: closure) {
-            sub_formula->assignId(validCnt);
-            formula_closure.push_back(sub_formula);
+            sub_formula.second->assignId(validCnt);
+            formula_closure.push_back(sub_formula.second);
             validCnt++;
         }
         // ------------------------------------------------------
         std::cout << "===Closure===\n";
         for (const auto &sub_formula: closure) {
-            std::cout << sub_formula->toString() << "\n";
+            std::cout << sub_formula.second->toString() << "\n";
         }
         std::cout << "======\n";
         // ------------------------------------------------------
