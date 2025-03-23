@@ -9,34 +9,28 @@
 #include "ts.hpp"
 #include "exception.hpp"
 
-struct FormulaHash;
-struct FormulaEqual;
-
 class FormulaBase : public std::enable_shared_from_this<FormulaBase> {
+    int id = -1;
 public:
     ~FormulaBase() = default;
 
-    std::unordered_set<std::shared_ptr<FormulaBase>, FormulaHash, FormulaEqual> getClosure();
+    struct Hash {
+        size_t operator()(const std::shared_ptr<FormulaBase> &formula) const {
+            return std::hash<std::string>()(formula->toString());
+        }
+    };
+
+    std::unordered_set<std::shared_ptr<FormulaBase>, Hash> getClosure();
+
+    void assignId(int validId) {
+        id = validId;
+    }
 
     [[nodiscard]] virtual std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const = 0;
 
     [[nodiscard]] virtual std::string toString() const noexcept = 0;
 };
 
-struct FormulaHash {
-    size_t operator()(const std::shared_ptr<FormulaBase> &formula) const {
-        return std::hash<std::string>()(formula->toString());
-    }
-};
-
-struct FormulaEqual {
-    bool operator()(const std::shared_ptr<FormulaBase> &lhs, const std::shared_ptr<FormulaBase> &rhs) const {
-        if (!lhs || !rhs) {
-            return false;
-        }
-        return lhs->toString() == rhs->toString();
-    }
-};
 
 /**
  *  True | AtomicProposition
@@ -191,8 +185,8 @@ public:
     }
 };
 
-std::unordered_set<std::shared_ptr<FormulaBase>, FormulaHash, FormulaEqual> FormulaBase::getClosure() {
-    std::unordered_set<std::shared_ptr<FormulaBase>, FormulaHash, FormulaEqual> closure;
+std::unordered_set<std::shared_ptr<FormulaBase>, FormulaBase::Hash> FormulaBase::getClosure() {
+    std::unordered_set<std::shared_ptr<FormulaBase>, FormulaBase::Hash> closure;
     std::shared_ptr<FormulaBase> thisFormula = shared_from_this(), negFormula;
     if (auto ptr = std::dynamic_pointer_cast<NegationFormula>(thisFormula)) {
         negFormula = ptr->getNegation();

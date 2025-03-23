@@ -8,6 +8,7 @@
 #include "parser/LTLParser.h"
 #include "utils/formula.hpp"
 #include "utils/exception.hpp"
+#include "utils/automata.hpp"
 
 std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(antlr4::ANTLRInputStream inputStream) {
     LTLLexer lexer(&inputStream);
@@ -75,12 +76,9 @@ int main() {
         // TODO: build TS
 
         for (const auto &formula: formulas) {
-            auto closure = formula.second->getClosure();
-            std::cout << "===Closure===\n";
-            for (const auto &phi: closure) {
-                std::cout << phi->toString() << "\n";
-            }
-            std::cout << "======\n";
+            std::shared_ptr<NegationFormula> negationFormula = std::make_shared<NegationFormula>(formula.second);
+            GNBA gnba = GNBA(negationFormula);
+            // TODO: NBA
             if (check(formula)) {
                 std::cout << 1 << "\n";
             } else {
@@ -90,8 +88,5 @@ int main() {
     } catch (const Exception &e) {
         std::cerr << e.what() << std::endl;
     }
-//    catch (...) {
-//        std::cerr << "Unknown error occurred!" << std::endl;
-//    }
     return 0;
 }
