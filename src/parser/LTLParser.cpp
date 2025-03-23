@@ -68,12 +68,12 @@ void ltlParserInitialize() {
   	0,20,22,1,0,0,0,21,19,1,0,0,0,22,23,5,0,0,1,23,1,1,0,0,0,24,25,3,6,3,
   	0,25,3,1,0,0,0,26,27,5,11,0,0,27,28,3,6,3,0,28,5,1,0,0,0,29,30,6,3,-1,
   	0,30,45,5,13,0,0,31,45,5,12,0,0,32,33,5,9,0,0,33,34,3,6,3,0,34,35,5,10,
-  	0,0,35,45,1,0,0,0,36,37,5,1,0,0,37,45,3,6,3,5,38,39,5,5,0,0,39,45,3,6,
-  	3,4,40,41,5,6,0,0,41,45,3,6,3,3,42,43,5,7,0,0,43,45,3,6,3,2,44,29,1,0,
+  	0,0,35,45,1,0,0,0,36,37,5,1,0,0,37,45,3,6,3,8,38,39,5,5,0,0,39,45,3,6,
+  	3,7,40,41,5,6,0,0,41,45,3,6,3,6,42,43,5,7,0,0,43,45,3,6,3,5,44,29,1,0,
   	0,0,44,31,1,0,0,0,44,32,1,0,0,0,44,36,1,0,0,0,44,38,1,0,0,0,44,40,1,0,
-  	0,0,44,42,1,0,0,0,45,60,1,0,0,0,46,47,10,8,0,0,47,48,5,2,0,0,48,59,3,
-  	6,3,9,49,50,10,7,0,0,50,51,5,3,0,0,51,59,3,6,3,8,52,53,10,6,0,0,53,54,
-  	5,4,0,0,54,59,3,6,3,6,55,56,10,1,0,0,56,57,5,8,0,0,57,59,3,6,3,2,58,46,
+  	0,0,44,42,1,0,0,0,45,60,1,0,0,0,46,47,10,4,0,0,47,48,5,2,0,0,48,59,3,
+  	6,3,5,49,50,10,3,0,0,50,51,5,3,0,0,51,59,3,6,3,4,52,53,10,2,0,0,53,54,
+  	5,4,0,0,54,59,3,6,3,2,55,56,10,1,0,0,56,57,5,8,0,0,57,59,3,6,3,2,58,46,
   	1,0,0,0,58,49,1,0,0,0,58,52,1,0,0,0,58,55,1,0,0,0,59,62,1,0,0,0,60,58,
   	1,0,0,0,60,61,1,0,0,0,61,7,1,0,0,0,62,60,1,0,0,0,5,13,19,44,58,60
   };
@@ -777,7 +777,7 @@ LTLParser::FormulaContext* LTLParser::formula(int precedence) {
         setState(36);
         match(LTLParser::Negation);
         setState(37);
-        formula(5);
+        formula(8);
         break;
       }
 
@@ -788,7 +788,7 @@ LTLParser::FormulaContext* LTLParser::formula(int precedence) {
         setState(38);
         match(LTLParser::Next);
         setState(39);
-        formula(4);
+        formula(7);
         break;
       }
 
@@ -799,7 +799,7 @@ LTLParser::FormulaContext* LTLParser::formula(int precedence) {
         setState(40);
         match(LTLParser::Always);
         setState(41);
-        formula(3);
+        formula(6);
         break;
       }
 
@@ -810,7 +810,7 @@ LTLParser::FormulaContext* LTLParser::formula(int precedence) {
         setState(42);
         match(LTLParser::Eventually);
         setState(43);
-        formula(2);
+        formula(5);
         break;
       }
 
@@ -835,11 +835,11 @@ LTLParser::FormulaContext* LTLParser::formula(int precedence) {
           pushNewRecursionContext(newContext, startState, RuleFormula);
           setState(46);
 
-          if (!(precpred(_ctx, 8))) throw FailedPredicateException(this, "precpred(_ctx, 8)");
+          if (!(precpred(_ctx, 4))) throw FailedPredicateException(this, "precpred(_ctx, 4)");
           setState(47);
           match(LTLParser::Conjunction);
           setState(48);
-          formula(9);
+          formula(5);
           break;
         }
 
@@ -849,11 +849,11 @@ LTLParser::FormulaContext* LTLParser::formula(int precedence) {
           pushNewRecursionContext(newContext, startState, RuleFormula);
           setState(49);
 
-          if (!(precpred(_ctx, 7))) throw FailedPredicateException(this, "precpred(_ctx, 7)");
+          if (!(precpred(_ctx, 3))) throw FailedPredicateException(this, "precpred(_ctx, 3)");
           setState(50);
           match(LTLParser::Disjunction);
           setState(51);
-          formula(8);
+          formula(4);
           break;
         }
 
@@ -863,11 +863,11 @@ LTLParser::FormulaContext* LTLParser::formula(int precedence) {
           pushNewRecursionContext(newContext, startState, RuleFormula);
           setState(52);
 
-          if (!(precpred(_ctx, 6))) throw FailedPredicateException(this, "precpred(_ctx, 6)");
+          if (!(precpred(_ctx, 2))) throw FailedPredicateException(this, "precpred(_ctx, 2)");
           setState(53);
           match(LTLParser::Implication);
           setState(54);
-          formula(6);
+          formula(2);
           break;
         }
 
@@ -914,9 +914,9 @@ bool LTLParser::sempred(RuleContext *context, size_t ruleIndex, size_t predicate
 
 bool LTLParser::formulaSempred(FormulaContext *_localctx, size_t predicateIndex) {
   switch (predicateIndex) {
-    case 0: return precpred(_ctx, 8);
-    case 1: return precpred(_ctx, 7);
-    case 2: return precpred(_ctx, 6);
+    case 0: return precpred(_ctx, 4);
+    case 1: return precpred(_ctx, 3);
+    case 2: return precpred(_ctx, 2);
     case 3: return precpred(_ctx, 1);
 
   default:

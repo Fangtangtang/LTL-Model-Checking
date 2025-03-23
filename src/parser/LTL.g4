@@ -17,13 +17,13 @@ formula:
     True                                #TrueFormula
     | AtomicProposition                 #AtomicPropositionFormula
     | LeftBracket formula RightBracket  #BracketFormula
-    | formula Conjunction formula       #ConjunctionFormula
-    | formula Disjunction formula       #DisjunctionFormula
-    | <assoc=right> formula Implication formula     #ImplicationFormula
     | Negation formula                  #NegationFormula
     | Next formula                      #NextFormula
     | Always formula                    #AlwaysFormula
     | Eventually formula                #EventuallyFormula
+    | formula Conjunction formula       #ConjunctionFormula
+    | formula Disjunction formula       #DisjunctionFormula
+    | <assoc=right> formula Implication formula     #ImplicationFormula
     | formula Until formula             #UntilFormula
     ;
 
