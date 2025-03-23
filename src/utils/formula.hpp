@@ -19,21 +19,25 @@ public:
 public:
     ~FormulaBase() = default;
 
-    struct Hash {
-        size_t operator()(const std::shared_ptr<FormulaBase> &formula) const {
-            return std::hash<std::string>()(formula->toString());
-        }
-    };
-
-    std::shared_ptr<FormulaBase> getNegation() const {
-        return negation;
-    }
-
     std::map<std::string, std::shared_ptr<FormulaBase>> getClosure();
 
     void assignId(int validId) {
         id = validId;
     }
+
+    int getId() const {
+        return id;
+    }
+
+    bool operator==(const FormulaBase &other) const {
+        return id == other.id;
+    }
+
+    struct Hash {
+        size_t operator()(const std::shared_ptr<FormulaBase> &formula) const {
+            return std::hash<int>{}(formula->getId());
+        }
+    };
 
     [[nodiscard]] virtual std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const = 0;
 
@@ -51,6 +55,10 @@ private:
 public:
     explicit AtomicFormula(std::shared_ptr<AtomicProposition> ap, bool isTrueFormula)
             : atomicProposition(std::move(ap)), isTrue(isTrueFormula) {}
+
+    bool isTrueFormula() const {
+        return isTrue;
+    }
 
     [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
         return {};
