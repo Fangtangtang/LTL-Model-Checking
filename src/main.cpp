@@ -52,9 +52,15 @@ std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(
 }
 
 bool check(const std::pair<int, std::shared_ptr<FormulaBase>> &formula) {
-
-    // TODO
+    std::shared_ptr<FormulaBase> negation_formula;
+    if (formula.second->negation != nullptr) {
+        negation_formula = formula.second->negation;
+    } else {
+        negation_formula = std::make_shared<NegationFormula>(formula.second);
+    }
     // Build GNBA
+    GNBA gnba = GNBA(negation_formula);
+    // TODO
 
     // Build NBA
 
@@ -80,13 +86,6 @@ int main() {
                 formula_stream, transition_system);
 
         for (const auto &formula: formulas) {
-            std::shared_ptr<FormulaBase> negation_formula;
-            if (formula.second->negation != nullptr) {
-                negation_formula = formula.second->negation;
-            } else {
-                negation_formula = std::make_shared<NegationFormula>(formula.second);
-            }
-            GNBA gnba = GNBA(negation_formula);
             // TODO: NBA
             if (check(formula)) {
                 std::cout << 1 << "\n";

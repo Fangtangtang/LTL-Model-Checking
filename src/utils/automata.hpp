@@ -66,6 +66,10 @@ public:
         id = ++counter;
     }
 
+    bool contains(int formula_id) const {
+        return element.count(formula_id) > 0;
+    }
+
     bool operator<(const ElementarySet &other) const { return id < other.id; }
 
     bool operator==(const ElementarySet &other) const noexcept {
@@ -92,7 +96,6 @@ private:
     int true_formula_id = -1;
     std::vector<std::shared_ptr<FormulaBase>> formula_closure;
     std::unordered_set<int> until_formula_ids;
-    std::unordered_set<int> next_formula_ids;
 
     std::unordered_set<int> AP_formula_ids;
     std::unordered_set<AtomicProposition, AtomicProposition::Hash> AP;
@@ -123,8 +126,6 @@ private:
                 }
             } else if (std::dynamic_pointer_cast<UntilFormula>(sub_formula.second)) {
                 until_formula_ids.emplace(validCnt);
-            } else if (std::dynamic_pointer_cast<NextFormula>(sub_formula.second)) {
-                next_formula_ids.emplace(validCnt);
             }
             validCnt++;
         }
@@ -248,7 +249,22 @@ private:
     }
 
     bool isValidTransition(const ElementarySet &state_b, const ElementarySet &state_b_prime) {
-        // TODO
+        for (const auto &formula: formula_closure) {
+            if (auto next_formula = std::dynamic_pointer_cast<NextFormula>(formula)) {
+                auto sub_formula = next_formula->getSubFormula()[0];
+                if (state_b.contains(next_formula->getId()) ^ state_b_prime.contains(sub_formula->getId())) {
+                    return false;
+                }
+            } else if (until_formula_ids.count(formula->getId()) > 0) {
+                auto sub_formulas = formula->getSubFormula();
+                std::shared_ptr<FormulaBase> psi_1 = sub_formulas[0], psi_2 = sub_formulas[1];
+                if ((state_b.contains(formula->getId()) ^ state_b.contains(psi_2->getId()))
+                    || (state_b.contains(psi_1->getId()) && state_b_prime.contains(formula->getId()))) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     void buildTransition() {
