@@ -8,21 +8,24 @@
 #include "formula.hpp"
 #include "ts.hpp"
 
-template<typename StateType, typename TransitCondition>
+template<typename StateType, typename AlphabetType, typename TransitCondition>
 class Automata {
 protected:
     std::unordered_set<StateType, typename StateType::Hash> state; // Q
     std::unordered_set<StateType, typename StateType::Hash> initial_state; // Q_0
     std::unordered_set<StateType, typename StateType::Hash> accepting_state; // F
-    std::unordered_set<AtomicProposition, typename AtomicProposition::Hash> alphabet; // Σ
+    std::vector<AlphabetType> alphabet; // Σ
 
     std::map<
-            std::pair<StateType, std::unordered_set<TransitCondition, typename TransitCondition::Hash>>,
-            std::unordered_set<StateType, typename StateType::Hash>
+            std::pair<StateType, TransitCondition>, std::unordered_set<StateType, typename StateType::Hash>
     > transition; // δ
 
 public:
     virtual ~Automata() = default;
+
+    void addWord(AlphabetType word) {
+        alphabet.push_back(word);
+    }
 
     void addState(StateType state_) {
         state.emplace(state_);
@@ -35,6 +38,15 @@ public:
     void addAcceptingState(StateType state_) {
         accepting_state.emplace(state_);
     }
+
+    void addTransition(std::pair<StateType, TransitCondition> key, StateType value) {
+        auto it = transition.find(key);
+        if (it != transition.end()) {
+            it->second.insert(value);  // 直接在找到的 `unordered_set` 里插入
+        } else {
+            transition[key] = {value};
+        }
+    }
 };
 
 /**
@@ -43,12 +55,18 @@ public:
 
 // subset of Closure(φ)
 class ElementarySet {
+private:
+    static int counter;
+    int id;
 public:
     std::unordered_set<int> element; // ids of the formulas
 
 public:
-    explicit ElementarySet(std::unordered_set<int> element_) : element(std::move(element_)) {}
+    explicit ElementarySet(std::unordered_set<int> element_) : element(std::move(element_)) {
+        id = ++counter;
+    }
 
+    bool operator<(const ElementarySet &other) const { return id < other.id; }
 
     bool operator==(const ElementarySet &other) const noexcept {
         return element == other.element;
@@ -57,23 +75,27 @@ public:
     struct Hash {
         std::size_t operator()(const ElementarySet &elementarySet) const noexcept {
             std::size_t hashValue = 0;
-            for (int id: elementarySet.element) {
-                hashValue ^= std::hash<int>{}(id) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+            for (int ele_id: elementarySet.element) {
+                hashValue ^= std::hash<int>{}(ele_id) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
             }
             return hashValue;
         }
     };
 };
 
-class GNBA : public Automata<ElementarySet, AtomicProposition> {
+int ElementarySet::counter{0};
+
+class GNBA : public Automata<ElementarySet, Word, Word> {
 private:
     std::shared_ptr<FormulaBase> phi;
 
     int true_formula_id = -1;
     std::vector<std::shared_ptr<FormulaBase>> formula_closure;
     std::unordered_set<int> until_formula_ids;
+    std::unordered_set<int> next_formula_ids;
 
-    std::unordered_set<int> AP_ids;
+    std::unordered_set<int> AP_formula_ids;
+    std::unordered_set<AtomicProposition, AtomicProposition::Hash> AP;
 private:
 
     void reformat(const std::shared_ptr<FormulaBase> &formula, std::map<std::string, int> stringToId,
@@ -97,10 +119,12 @@ private:
                 if (atomic->isTrueFormula()) {
                     true_formula_id = validCnt;
                 } else {
-                    AP_ids.emplace(validCnt);
+                    AP.emplace(atomic->getAP());
                 }
-            } else if (auto until = std::dynamic_pointer_cast<UntilFormula>(sub_formula.second)) {
+            } else if (std::dynamic_pointer_cast<UntilFormula>(sub_formula.second)) {
                 until_formula_ids.emplace(validCnt);
+            } else if (std::dynamic_pointer_cast<NextFormula>(sub_formula.second)) {
+                next_formula_ids.emplace(validCnt);
             }
             validCnt++;
         }
@@ -115,15 +139,24 @@ private:
         }
         std::cout << "======\n";
         std::cout << "===AP===\n";
-        for (const auto &ap: AP_ids) {
-            std::cout << formula_closure[ap]->toString(true) << "\n";
+        for (const auto &ap: AP) {
+            std::cout << ap.toString() << "\n";
         }
         std::cout << "======\n";
         // ------------------------------------------------------
     }
 
     void buildAlphabet() {
-        // TODO
+        std::vector<AtomicProposition> tmp_ap(AP.begin(), AP.end());
+        for (int mask = 0; mask < 1 << tmp_ap.size(); ++mask) {
+            std::vector<AtomicProposition> ap_list;
+            for (int i = 0; i < tmp_ap.size(); ++i) {
+                if (mask & (1 << i)) {
+                    ap_list.push_back(tmp_ap[i]);
+                }
+            }
+            addWord(Word(ap_list));
+        }
     }
 
     /**
@@ -202,6 +235,41 @@ private:
         }
     }
 
+    std::unordered_set<int> stateIntersectWord(const ElementarySet &state_b, const Word &word) {
+        std::unordered_set<int> result;
+        for (const int &elem: state_b.element) {
+            if (auto atomic_formula = std::dynamic_pointer_cast<AtomicFormula>(formula_closure[elem])) {
+                if ((!atomic_formula->isTrueFormula()) && word.contains(atomic_formula->getAP())) {
+                    result.insert(elem);
+                }
+            }
+        }
+        return result;
+    }
+
+    bool isValidTransition(const ElementarySet &state_b, const ElementarySet &state_b_prime) {
+        // TODO
+    }
+
+    void buildTransition() {
+        // δ(B,A) = ?
+        for (const ElementarySet &state_b: state) {
+            for (const auto &word: alphabet) {
+                // A ≠ B ∩ AP, δ(B,A) = ⌀
+                if (stateIntersectWord(state_b, word).empty()) {
+                    continue;
+                }
+                // A = B ∩ AP,
+                std::pair<ElementarySet, Word> key = std::make_pair(state_b, word);
+                for (const ElementarySet &state_b_prime: state) {
+                    if (isValidTransition(state_b, state_b_prime)) {
+                        addTransition(key, state_b_prime);
+                    }
+                }
+            }
+        }
+    }
+
 public:
     // build GNBA
     explicit GNBA(const std::shared_ptr<FormulaBase> &formula) : phi(formula) {
@@ -210,7 +278,7 @@ public:
         buildAlphabet();
         buildStates();
         printStates(true);
-        // TODO: alphabet and transition
+        buildTransition();
     }
 
     void printStates(bool brief) {

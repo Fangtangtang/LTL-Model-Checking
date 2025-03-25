@@ -10,9 +10,12 @@
 
 class AtomicProposition {
 private:
+    int id;
     std::string name;
 public:
-    explicit AtomicProposition(std::string ap) : name(std::move(ap)) {}
+    explicit AtomicProposition(int ap_id, std::string ap) : id(ap_id), name(std::move(ap)) {}
+
+    bool operator<(const AtomicProposition &other) const { return id < other.id; }
 
     bool operator==(const AtomicProposition &other) const {
         return name == other.name;
@@ -24,9 +27,31 @@ public:
 
     struct Hash {
         std::size_t operator()(const AtomicProposition &ap) const noexcept {
-            return std::hash<std::string>{}(ap.name);
+            return std::hash<int>{}(ap.id);
         }
     };
+};
+
+class Word {
+private:
+    std::vector<AtomicProposition> aps;
+    std::string word;
+public:
+    explicit Word(std::vector<AtomicProposition> ap_list) : aps(std::move(ap_list)) {
+        std::sort(aps.begin(), aps.end());
+        for (const auto &ap: aps) {
+            word = word.append(ap.toString());
+        }
+    }
+
+    bool operator<(const Word &other) const {
+        return word < other.word;
+    }
+
+    [[nodiscard]] bool contains(const AtomicProposition& ap) const {
+        return std::find(aps.begin(), aps.end(), ap) != aps.end();
+    }
+
 };
 
 struct State {
@@ -42,7 +67,7 @@ private:
     std::unordered_set<int> initial_state;
 
     std::vector<std::string> ap_list;
-    std::map<std::string, std::shared_ptr<AtomicProposition>> AP;
+    std::map<std::string, AtomicProposition> AP;
 
 public:
     explicit TransitionSystem(const std::string &file_name) {
@@ -67,12 +92,15 @@ public:
         std::getline(ts_file, line);
 
         // AP
+        AP.emplace("true", AtomicProposition(-1, "true"));
         std::getline(ts_file, line);
         std::istringstream ap_stream(line);
         std::string ap;
+        int cnt = 0;
         while (ap_stream >> ap) {
             ap_list.push_back(ap);
-            AP.emplace(ap, std::make_shared<AtomicProposition>(ap));
+            AP.emplace(ap, AtomicProposition(cnt, ap));
+            ++cnt;
         }
 
         // transitions
@@ -95,7 +123,7 @@ public:
         }
     }
 
-    std::shared_ptr<AtomicProposition> getAtomicProposition(const std::string &name) const {
+    AtomicProposition getAtomicProposition(const std::string &name) const {
         auto it = AP.find(name);
         if (it != AP.end()) {
             return it->second;

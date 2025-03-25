@@ -57,13 +57,17 @@ public:
 class AtomicFormula : public FormulaBase {
 private:
     bool isTrue = false;
-    std::shared_ptr<AtomicProposition> atomicProposition;
+    AtomicProposition atomicProposition;
 public:
-    explicit AtomicFormula(std::shared_ptr<AtomicProposition> ap, bool isTrueFormula)
+    explicit AtomicFormula(AtomicProposition ap, bool isTrueFormula)
             : atomicProposition(std::move(ap)), isTrue(isTrueFormula) {}
 
     bool isTrueFormula() const {
         return isTrue;
+    }
+
+    AtomicProposition getAP() {
+        return atomicProposition;
     }
 
     [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
@@ -72,9 +76,9 @@ public:
 
     [[nodiscard]] std::string toString(bool brief) const noexcept override {
         if (brief) {
-            return isTrue ? "True" : atomicProposition->toString();
+            return isTrue ? "True" : atomicProposition.toString();
         }
-        return "[\033[33mAtomic \033[0m" + (isTrue ? "True" : atomicProposition->toString()) + "]";
+        return "[\033[33mAtomic \033[0m" + (isTrue ? "True" : atomicProposition.toString()) + "]";
     }
 };
 
@@ -93,8 +97,8 @@ public:
         if (brief) {
             return "(" + left_formula->toString(brief) + " ∧ " + right_formula->toString(brief) + ")";
         }
-        return "[\033[33mConjunction \033[0m" + left_formula->toString(brief) + " ∧ " + right_formula->toString(brief) +
-               "]";
+        return "[\033[33mConjunction \033[0m" + left_formula->toString(brief) + " ∧ "
+               + right_formula->toString(brief) + "]";
     }
 };
 
@@ -114,8 +118,8 @@ public:
         if (brief) {
             return "(" + left_formula->toString(brief) + " ∨ " + right_formula->toString(brief) + ")";
         }
-        return "[\033[33mDisjunction \033[0m" + left_formula->toString(brief) + " ∨ " + right_formula->toString(brief) +
-               "]";
+        return "[\033[33mDisjunction \033[0m" + left_formula->toString(brief) + " ∨ "
+               + right_formula->toString(brief) + "]";
     }
 };
 
@@ -134,8 +138,8 @@ public:
         if (brief) {
             return "(" + left_formula->toString(brief) + " → " + right_formula->toString(brief) + ")";
         }
-        return "[\033[33mImplication \033[0m" + left_formula->toString(brief) + " → " + right_formula->toString(brief) +
-               "]";
+        return "[\033[33mImplication \033[0m" + left_formula->toString(brief) + " → "
+               + right_formula->toString(brief) + "]";
     }
 };
 
@@ -367,7 +371,7 @@ private:
 
     std::any visitTrueFormula(LTLParser::TrueFormulaContext *ctx) override {
         return std::static_pointer_cast<FormulaBase>(
-                std::make_shared<AtomicFormula>(nullptr, true)
+                std::make_shared<AtomicFormula>(ts.getAtomicProposition("true"), true)
         );
     }
 
