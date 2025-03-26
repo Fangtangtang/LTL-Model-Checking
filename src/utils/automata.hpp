@@ -34,33 +34,6 @@ public:
     bool operator==(const ElementarySet &other) const noexcept {
         return id == other.id;
     }
-
-    struct Hash {
-        std::size_t operator()(const ElementarySet &elementary_set) const noexcept {
-            std::size_t hashValue = 0;
-            for (int ele_id: elementary_set.element) {
-                hashValue ^= std::hash<int>{}(ele_id) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
-            }
-            return hashValue;
-        }
-    };
-
-    struct PtrHash {
-        std::size_t operator()(const std::shared_ptr<ElementarySet> &ptr) const noexcept {
-            std::size_t hashValue = 0;
-            for (int ele_id: ptr->element) {
-                hashValue ^= std::hash<int>{}(ele_id) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
-            }
-            return hashValue;
-        }
-    };
-
-    struct PtrEqual {
-        bool operator()(const std::shared_ptr<ElementarySet> &lhs,
-                        const std::shared_ptr<ElementarySet> &rhs) const noexcept {
-            return lhs->id == rhs->id;
-        }
-    };
 };
 
 int ElementarySet::counter{0};
@@ -76,6 +49,7 @@ private:
     int copy_id;
 
 public:
+    // ! do not move
     ElementarySetCopy(std::shared_ptr<ElementarySet> original_state, int id) : original(original_state), copy_id(id) {}
 
     bool operator<(const ElementarySetCopy &other) const {
@@ -88,13 +62,6 @@ public:
     bool operator==(const ElementarySetCopy &other) const noexcept {
         return original == other.original && copy_id == other.copy_id;
     }
-
-//    struct Hash {
-// TODO
-//        std::size_t operator()(const ElementarySetCopy &set_copy) const noexcept {
-//            return ElementarySet::Hash{}(set_copy.original) ^ std::hash<int>{}(set_copy.copy_id);
-//        }
-//    };
 };
 
 template<typename StateType, typename AlphabetType, typename TransitCondition>
@@ -410,22 +377,60 @@ public:
 /**
  * NBA
  */
-//class NBA : public Automata<ElementarySetCopy, Word, Word> {
-//public:
-//    // build NBA from GNBA
-//    explicit NBA(const std::shared_ptr<GNBA> &automata) {
-//        auto copy_number = automata->accepting_state.size();
-//        if (copy_number == 0) {
-//            throw NotSupportedError("expect at least one accepting all_state set in GNMA");
-//        }
-//        // Q' = Q x {1, ..., k}
-//        for (auto original_state: automata->all_state) {
-//            for (int i = 0; i < copy_number; ++i) {
-//                // TODO: to be implemented!
-//            }
-//        }
-//        // same alphabet
-//    }
-//};
+class NBA : public Automata<ElementarySetCopy, Word, Word> {
+public:
+    std::unordered_set<int> accepting_state;
+
+public:
+    // build NBA from GNBA
+    explicit NBA(const std::shared_ptr<GNBA> &automata) {
+        auto copy_number = automata->accepting_state.size();
+        std::vector<std::unordered_set<int>> accepting_states_in_gnba;
+        for (const auto &[key, state_id_set]: automata->accepting_state) {
+            accepting_states_in_gnba.push_back(state_id_set);
+        }
+        if (copy_number == 0) {
+            throw NotSupportedError("expect at least one accepting all_state set in GNBA");
+        }
+        std::map<std::pair<int, int>, int> state_map; // (original_idx, copy_id) -> new_idx
+        // Q' = Q x {1, ..., k}
+        for (int original_state_idx = 0; original_state_idx < automata->state.size(); ++original_state_idx) {
+            std::shared_ptr<ElementarySet> original_state = automata->state[original_state_idx];
+            for (int copy_id = 1; copy_id <= copy_number; ++copy_id) {
+                std::shared_ptr<ElementarySetCopy> state_copy
+                        = std::make_shared<ElementarySetCopy>(original_state, copy_id);
+                int state_idx = addState(state_copy);
+                state_map[std::make_pair(original_state_idx, copy_id)] = state_idx;
+                if (copy_id == 1) {
+                    // Q_0' = Q_0 x {1}
+                    if (automata->initial_state.count(original_state_idx) > 0) {
+                        addInitState(state_idx);
+                    }
+                    // F' = F_1 x {1}
+                    if (accepting_states_in_gnba[0].count(original_state_idx) > 0) {
+                        accepting_state.emplace(state_idx);
+                    }
+                }
+            }
+        }
+        // same alphabet
+        alphabet = automata->alphabet;
+        // transition
+        for (const auto &[key_pair, state_id_set]: automata->transition) {
+            for (int copy_id = 1; copy_id <= copy_number; ++copy_id) {
+                int org_src_state_idx = key_pair.first;
+                for (int org_dst_state_idx: state_id_set) { // (org_src_state_idx, key_pair.second) -> org_dst_state_idx
+                    int src_state_idx = state_map[{org_src_state_idx, copy_id}], dst_state_idx;
+                    if (accepting_states_in_gnba[copy_id - 1].count(org_src_state_idx) > 0) {
+                        dst_state_idx = state_map[{org_dst_state_idx, copy_id + 1}];
+                    } else {
+                        dst_state_idx = state_map[{org_dst_state_idx, copy_id}];
+                    }
+                    addTransition(std::make_pair(src_state_idx, key_pair.second), dst_state_idx);
+                }
+            }
+        }
+    }
+};
 
 #endif //LTL_MODEL_CHECKING_AUTOMATA_HPP
