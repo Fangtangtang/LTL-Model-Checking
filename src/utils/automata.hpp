@@ -444,6 +444,10 @@ public:
         return initial_state;
     }
 
+    std::unordered_set<int> getFinal() const {
+        return accepting_state;
+    }
+
     std::vector<std::shared_ptr<ElementarySetCopy>> getStates() const {
         return state;
     }

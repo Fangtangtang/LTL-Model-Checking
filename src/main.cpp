@@ -83,12 +83,20 @@ int main() {
         std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> formulas = parseFormulas(
                 formula_stream, transition_system);
 
+        std::vector<int> ans;
         for (const auto &formula: formulas) {
             if (check(formula, transition_system)) {
                 std::cout << 1 << "\n";
+                ans.push_back(1);
             } else {
                 std::cout << 0 << "\n";
+                ans.push_back(0);
             }
+        }
+
+        std::cout << "\n\n";
+        for (int a: ans) {
+            std::cout << a << "\t";
         }
     } catch (const Exception &e) {
         std::cerr << e.what() << std::endl;

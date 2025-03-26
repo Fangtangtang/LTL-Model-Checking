@@ -63,6 +63,10 @@ struct StateWrapper {
     WordType ap;
 
     explicit StateWrapper(InnerType i) : inner(i) {}
+
+    bool operator==(const StateWrapper &other) const {
+        return inner == other.inner;
+    }
 };
 
 class TransitionSystem {

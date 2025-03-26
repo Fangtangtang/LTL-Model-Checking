@@ -1,6 +1,7 @@
 #ifndef LTL_MODEL_CHECKING_CHECK_HPP
 #define LTL_MODEL_CHECKING_CHECK_HPP
 
+#include <stack>
 #include "ts.hpp"
 #include "automata.hpp"
 
@@ -8,15 +9,84 @@ class TransitionSystemProductNBA {
 private:
     std::vector<StateWrapper<int, Word>> S;
     std::vector<std::shared_ptr<ElementarySetCopy>> Q; // AP
+    std::unordered_set<int> F;
 
     std::vector<StateWrapper<std::pair<int, int>, int>> state; // S x Q (id pair)
     std::unordered_set<int> initial_state;
+
+    std::unordered_set<int> R;
+    std::stack<int> U;
+    std::unordered_set<int> T;
+    std::stack<int> V;
+    bool cycle_found = false;
+
+private:
+    bool cycleCheck(int id, StateWrapper<std::pair<int, int>, int> s) {
+        bool found = false;
+        V.push(id);
+        T.emplace(id);
+        while (true) {
+            int top_s_id = V.top();
+            StateWrapper<std::pair<int, int>, int> top_s = state[top_s_id];
+            if (top_s.successor.count(id) > 0) {
+                found = true;
+                V.push(id);
+            } else {
+                std::unordered_set<int> post_s_T = diffSet(top_s.successor, T);
+                if (!post_s_T.empty()) {
+                    int selected_s_id = *post_s_T.begin();
+                    V.push(selected_s_id);
+                    T.emplace(selected_s_id);
+                } else {
+                    V.pop();
+                }
+            }
+            if (V.empty() || found) {
+                break;
+            }
+        }
+        return found;
+    }
+
+    void reachableCycle(int s_id) {
+        U.push(s_id);
+        R.emplace(s_id);
+        while (true) {
+            int top_s_id = U.top();
+            StateWrapper<std::pair<int, int>, int> top_s = state[top_s_id];
+            std::unordered_set<int> post_s_R = diffSet(top_s.successor, R);
+            if (!post_s_R.empty()) {
+                int selected_s_id = *post_s_R.begin();
+                U.push(selected_s_id);
+                R.emplace(selected_s_id);
+            } else {
+                U.pop();
+                if (F.count(top_s.ap) > 0) {
+                    cycle_found = cycleCheck(top_s_id, top_s);
+                }
+            }
+            if (U.empty() || cycle_found) {
+                break;
+            }
+        }
+    }
+
+    static inline std::unordered_set<int> diffSet(const std::unordered_set<int> &set_a, std::unordered_set<int> set_b) {
+        std::unordered_set<int> diff;
+        for (const auto &elem: set_a) {
+            if (set_b.find(elem) == set_b.end()) {
+                diff.insert(elem);
+            }
+        }
+        return diff;
+    }
 
 public:
     TransitionSystemProductNBA(const TransitionSystem &ts, const NBA &nba, int state_id) {
         // states
         S = ts.getStates();
         Q = nba.getStates();
+        F = nba.getFinal();
         for (int s_idx = 0; s_idx < S.size(); ++s_idx) {
             for (int q_idx = 0; q_idx < Q.size(); ++q_idx) {
                 StateWrapper<std::pair<int, int>, int> new_state({s_idx, q_idx});
@@ -58,9 +128,15 @@ public:
         }
     }
 
+
+    // check by nested DFS
     bool check() {
-        // TODO
-        return false;
+        std::unordered_set<int> I_R = diffSet(initial_state, R);
+        while (!I_R.empty() && !cycle_found) {
+            reachableCycle(*I_R.begin());
+            I_R = diffSet(initial_state, R);
+        }
+        return !cycle_found;
     }
 };
 
