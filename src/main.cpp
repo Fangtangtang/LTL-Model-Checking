@@ -10,9 +10,10 @@
 #include "utils/exception.hpp"
 #include "utils/automata.hpp"
 #include "utils/ts.hpp"
+#include "utils/check.hpp"
 
 std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(
-        antlr4::ANTLRInputStream stream, const TransitionSystem& ts
+        antlr4::ANTLRInputStream stream, const TransitionSystem &ts
 ) {
     LTLLexer lexer(&stream);
     antlr4::CommonTokenStream tokens(&lexer);
@@ -51,7 +52,7 @@ std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(
     return formulaBuilder.formulas;
 }
 
-bool check(const std::pair<int, std::shared_ptr<FormulaBase>> &formula) {
+bool check(const std::pair<int, std::shared_ptr<FormulaBase>> &formula, const TransitionSystem &ts) {
     std::shared_ptr<FormulaBase> negation_formula;
     if (formula.second->negation != nullptr) {
         negation_formula = formula.second->negation;
@@ -59,16 +60,13 @@ bool check(const std::pair<int, std::shared_ptr<FormulaBase>> &formula) {
         negation_formula = std::make_shared<NegationFormula>(formula.second);
     }
     // Build GNBA
-    GNBA gnba = GNBA(negation_formula);
-    // TODO
-
+    GNBA gnba(negation_formula);
     // Build NBA
-
+    NBA nba(gnba);
     // TS (x) NBA
-
+    TransitionSystemProductNBA checked_ts(ts, nba, formula.first);
     // checking algorithm
-
-    return formula.first >= 0;
+    return checked_ts.check();
 }
 
 int main() {
@@ -86,8 +84,7 @@ int main() {
                 formula_stream, transition_system);
 
         for (const auto &formula: formulas) {
-            // TODO: NBA
-            if (check(formula)) {
+            if (check(formula, transition_system)) {
                 std::cout << 1 << "\n";
             } else {
                 std::cout << 0 << "\n";

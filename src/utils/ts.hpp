@@ -36,7 +36,10 @@ class Word {
 private:
     std::vector<AtomicProposition> aps;
     std::string word;
+
 public:
+    Word() = default;
+
     explicit Word(std::vector<AtomicProposition> ap_list) : aps(std::move(ap_list)) {
         std::sort(aps.begin(), aps.end());
         for (const auto &ap: aps) {
@@ -48,22 +51,25 @@ public:
         return word < other.word;
     }
 
-    [[nodiscard]] bool contains(const AtomicProposition& ap) const {
+    [[nodiscard]] bool contains(const AtomicProposition &ap) const {
         return std::find(aps.begin(), aps.end(), ap) != aps.end();
     }
-
 };
 
-struct State {
+template<typename InnerType, typename WordType>
+struct StateWrapper {
+    InnerType inner;
     std::unordered_set<int> successor;
-    std::unordered_set<int> ap_id;
+    WordType ap;
+
+    explicit StateWrapper(InnerType i) : inner(i) {}
 };
 
 class TransitionSystem {
 private:
     int state_num{}, transition_num{};
 
-    std::vector<State> state;
+    std::vector<StateWrapper<int, Word>> state;
     std::unordered_set<int> initial_state;
 
     std::vector<std::string> ap_list;
@@ -77,7 +83,9 @@ public:
         }
 
         ts_file >> state_num >> transition_num;
-        state.resize(state_num);
+        for (int i = 0; i < state_num; ++i) {
+            state.emplace_back(i);
+        }
         ts_file.ignore();
 
         std::string line;
@@ -117,9 +125,11 @@ public:
         for (int i = 0; i < state_num; ++i) {
             std::getline(ts_file, line);
             std::istringstream label_stream(line);
+            std::vector<AtomicProposition> label_ap;
             while (ap_stream >> label) {
-                state[i].ap_id.emplace(label);
+                label_ap.push_back(getAtomicProposition(ap_list[label]));
             }
+            state[i].ap = Word(label_ap);
         }
     }
 
@@ -129,6 +139,18 @@ public:
             return it->second;
         }
         throw RuntimeError("ap not found.");
+    }
+
+    std::unordered_set<int> getInit() const {
+        return initial_state;
+    }
+
+    std::vector<StateWrapper<int, Word>> getStates() const {
+        return state;
+    }
+
+    StateWrapper<int, Word> getState(int id) const {
+        return state[id];
     }
 };
 

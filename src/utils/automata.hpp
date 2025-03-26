@@ -268,6 +268,14 @@ private:
                 }
             }
         }
+        // transform to an equivalent form with at least one accepting set
+        if (accepting_state.empty()) {
+            std::unordered_set<int> tmp;
+            for (int i = 0; i < state.size(); ++i) {
+                tmp.emplace(i);
+            }
+            accepting_state.emplace(-1, tmp);
+        }
     }
 
     std::unordered_set<int> stateIntersectWord(const std::shared_ptr<ElementarySet> &state_b, const Word &word) {
@@ -383,10 +391,10 @@ public:
 
 public:
     // build NBA from GNBA
-    explicit NBA(const std::shared_ptr<GNBA> &automata) {
-        auto copy_number = automata->accepting_state.size();
+    explicit NBA(const GNBA &automata) {
+        auto copy_number = automata.accepting_state.size();
         std::vector<std::unordered_set<int>> accepting_states_in_gnba;
-        for (const auto &[key, state_id_set]: automata->accepting_state) {
+        for (const auto &[key, state_id_set]: automata.accepting_state) {
             accepting_states_in_gnba.push_back(state_id_set);
         }
         if (copy_number == 0) {
@@ -394,8 +402,8 @@ public:
         }
         std::map<std::pair<int, int>, int> state_map; // (original_idx, copy_id) -> new_idx
         // Q' = Q x {1, ..., k}
-        for (int original_state_idx = 0; original_state_idx < automata->state.size(); ++original_state_idx) {
-            std::shared_ptr<ElementarySet> original_state = automata->state[original_state_idx];
+        for (int original_state_idx = 0; original_state_idx < automata.state.size(); ++original_state_idx) {
+            std::shared_ptr<ElementarySet> original_state = automata.state[original_state_idx];
             for (int copy_id = 1; copy_id <= copy_number; ++copy_id) {
                 std::shared_ptr<ElementarySetCopy> state_copy
                         = std::make_shared<ElementarySetCopy>(original_state, copy_id);
@@ -403,7 +411,7 @@ public:
                 state_map[std::make_pair(original_state_idx, copy_id)] = state_idx;
                 if (copy_id == 1) {
                     // Q_0' = Q_0 x {1}
-                    if (automata->initial_state.count(original_state_idx) > 0) {
+                    if (automata.initial_state.count(original_state_idx) > 0) {
                         addInitState(state_idx);
                     }
                     // F' = F_1 x {1}
@@ -414,9 +422,9 @@ public:
             }
         }
         // same alphabet
-        alphabet = automata->alphabet;
+        alphabet = automata.alphabet;
         // transition
-        for (const auto &[key_pair, state_id_set]: automata->transition) {
+        for (const auto &[key_pair, state_id_set]: automata.transition) {
             for (int copy_id = 1; copy_id <= copy_number; ++copy_id) {
                 int org_src_state_idx = key_pair.first;
                 for (int org_dst_state_idx: state_id_set) { // (org_src_state_idx, key_pair.second) -> org_dst_state_idx
@@ -429,6 +437,23 @@ public:
                     addTransition(std::make_pair(src_state_idx, key_pair.second), dst_state_idx);
                 }
             }
+        }
+    }
+
+    std::unordered_set<int> getInit() const {
+        return initial_state;
+    }
+
+    std::vector<std::shared_ptr<ElementarySetCopy>> getStates() const {
+        return state;
+    }
+
+    std::unordered_set<int> getTransition(const std::pair<int, Word> &key) const {
+        auto it = transition.find(key);
+        if (it != transition.end()) {
+            return it->second;
+        } else {
+            return {};
         }
     }
 };

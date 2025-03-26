@@ -11,6 +11,7 @@ add_executable(LTL_Model_Checking
         parser/LTLLexer.cpp parser/LTLParser.cpp
         utils/formula.hpp utils/ts.hpp utils/exception.hpp
         utils/automata.hpp
+        utils/check.hpp
 )
 
 target_include_directories(LTL_Model_Checking PRIVATE ${ANTLR4_RUNTIME_PATH}/usr/local/include/antlr4-runtime)
