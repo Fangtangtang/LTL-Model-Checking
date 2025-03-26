@@ -8,52 +8,11 @@
 #include "formula.hpp"
 #include "ts.hpp"
 
-template<typename StateType, typename AlphabetType, typename TransitCondition>
-class Automata {
-protected:
-    std::unordered_set<StateType, typename StateType::Hash> state; // Q
-    std::unordered_set<StateType, typename StateType::Hash> initial_state; // Q_0
-    std::unordered_set<StateType, typename StateType::Hash> accepting_state; // F
-    std::vector<AlphabetType> alphabet; // Σ
-
-    std::map<
-            std::pair<StateType, TransitCondition>, std::unordered_set<StateType, typename StateType::Hash>
-    > transition; // δ
-
-public:
-    virtual ~Automata() = default;
-
-    void addWord(AlphabetType word) {
-        alphabet.push_back(word);
-    }
-
-    void addState(StateType state_) {
-        state.emplace(state_);
-    }
-
-    void addInitState(StateType state_) {
-        initial_state.emplace(state_);
-    }
-
-    void addAcceptingState(StateType state_) {
-        accepting_state.emplace(state_);
-    }
-
-    void addTransition(std::pair<StateType, TransitCondition> key, StateType value) {
-        auto it = transition.find(key);
-        if (it != transition.end()) {
-            it->second.insert(value);  // 直接在找到的 `unordered_set` 里插入
-        } else {
-            transition[key] = {value};
-        }
-    }
-};
-
 /**
- * GNBA
+ * State of GNBA
+ * -----------------------------------
+ * subset of Closure(φ)
  */
-
-// subset of Closure(φ)
 class ElementarySet {
 private:
     static int counter;
@@ -73,23 +32,122 @@ public:
     bool operator<(const ElementarySet &other) const { return id < other.id; }
 
     bool operator==(const ElementarySet &other) const noexcept {
-        return element == other.element;
+        return id == other.id;
     }
 
     struct Hash {
-        std::size_t operator()(const ElementarySet &elementarySet) const noexcept {
+        std::size_t operator()(const ElementarySet &elementary_set) const noexcept {
             std::size_t hashValue = 0;
-            for (int ele_id: elementarySet.element) {
+            for (int ele_id: elementary_set.element) {
                 hashValue ^= std::hash<int>{}(ele_id) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
             }
             return hashValue;
+        }
+    };
+
+    struct PtrHash {
+        std::size_t operator()(const std::shared_ptr<ElementarySet> &ptr) const noexcept {
+            std::size_t hashValue = 0;
+            for (int ele_id: ptr->element) {
+                hashValue ^= std::hash<int>{}(ele_id) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+            }
+            return hashValue;
+        }
+    };
+
+    struct PtrEqual {
+        bool operator()(const std::shared_ptr<ElementarySet> &lhs,
+                        const std::shared_ptr<ElementarySet> &rhs) const noexcept {
+            return lhs->id == rhs->id;
         }
     };
 };
 
 int ElementarySet::counter{0};
 
+/**
+ * State of NBA
+ * -----------------------------------
+ * copy of ElementarySet
+ */
+class ElementarySetCopy {
+private:
+    std::shared_ptr<ElementarySet> original;
+    int copy_id;
+
+public:
+    ElementarySetCopy(std::shared_ptr<ElementarySet> original_state, int id) : original(original_state), copy_id(id) {}
+
+    bool operator<(const ElementarySetCopy &other) const {
+        if (original == other.original) {
+            return copy_id < other.copy_id;
+        }
+        return original < other.original;
+    }
+
+    bool operator==(const ElementarySetCopy &other) const noexcept {
+        return original == other.original && copy_id == other.copy_id;
+    }
+
+//    struct Hash {
+// TODO
+//        std::size_t operator()(const ElementarySetCopy &set_copy) const noexcept {
+//            return ElementarySet::Hash{}(set_copy.original) ^ std::hash<int>{}(set_copy.copy_id);
+//        }
+//    };
+};
+
+template<typename StateType, typename AlphabetType, typename TransitCondition>
+class Automata {
+public:
+    // all states are referred though index in this array
+    std::vector<std::shared_ptr<StateType>> state; // Q
+    std::vector<AlphabetType> alphabet; // Σ
+
+    std::unordered_set<int> initial_state; // Q_0
+
+    std::map<std::pair<int, TransitCondition>, std::unordered_set<int>> transition; // δ
+
+public:
+    virtual ~Automata() = default;
+
+    void addWord(AlphabetType word) {
+        alphabet.push_back(word);
+    }
+
+    /**
+     * append one state into the array
+     * @param state_
+     * @return state_ index in array
+     */
+    int addState(std::shared_ptr<StateType> state_) {
+        state.push_back(state_);
+        return state.size() - 1;
+    }
+
+    void addInitState(int index_in_state) {
+        initial_state.emplace(index_in_state);
+    }
+
+    void addTransition(std::pair<int, TransitCondition> key, int value) {
+        auto it = transition.find(key);
+        if (it != transition.end()) {
+            it->second.insert(value);
+        } else {
+            transition[key] = {value};
+        }
+    }
+};
+
+/**
+ * GNBA
+ */
+
 class GNBA : public Automata<ElementarySet, Word, Word> {
+public:
+    // F
+    std::map<int, std::unordered_set<int>> accepting_state;
+
 private:
     std::shared_ptr<FormulaBase> phi;
 
@@ -207,6 +265,15 @@ private:
         return true;
     }
 
+    void addAcceptingState(int key, int state_id) {
+        auto it = accepting_state.find(key);
+        if (it != accepting_state.end()) {
+            it->second.insert(state_id);
+        } else {
+            accepting_state[key] = {state_id};
+        }
+    }
+
     void buildStates() {
         auto closure_size = formula_closure.size();
         for (int mask = 0; mask < 1 << closure_size; ++mask) {
@@ -219,26 +286,26 @@ private:
             }
             // check validity
             if (isValidElementarySet(ids)) {
-                ElementarySet elementary_set(ids);
-                addState(elementary_set);
+                std::shared_ptr<ElementarySet> elementary_set = std::make_shared<ElementarySet>(ids);
+                int state_idx = addState(elementary_set);
                 // Q_0 = {B ∈ Q | φ ∈ B}
                 if (ids.count(phi->getId()) > 0) {
-                    addInitState(elementary_set);
+                    addInitState(state_idx);
                 }
                 // F
                 for (int until_formula_id: until_formula_ids) {
                     std::shared_ptr<FormulaBase> until_formula = formula_closure[until_formula_id];
                     if (ids.count(until_formula_id) == 0 || ids.count(until_formula->getSubFormula()[1]->getId()) > 0) {
-                        addAcceptingState(elementary_set);
+                        addAcceptingState(until_formula_id, state_idx);
                     }
                 }
             }
         }
     }
 
-    std::unordered_set<int> stateIntersectWord(const ElementarySet &state_b, const Word &word) {
+    std::unordered_set<int> stateIntersectWord(const std::shared_ptr<ElementarySet> &state_b, const Word &word) {
         std::unordered_set<int> result;
-        for (const int &elem: state_b.element) {
+        for (const int &elem: state_b->element) {
             if (auto atomic_formula = std::dynamic_pointer_cast<AtomicFormula>(formula_closure[elem])) {
                 if ((!atomic_formula->isTrueFormula()) && word.contains(atomic_formula->getAP())) {
                     result.insert(elem);
@@ -248,18 +315,19 @@ private:
         return result;
     }
 
-    bool isValidTransition(const ElementarySet &state_b, const ElementarySet &state_b_prime) {
+    bool isValidTransition(const std::shared_ptr<ElementarySet> &state_b,
+                           const std::shared_ptr<ElementarySet> &state_b_prime) {
         for (const auto &formula: formula_closure) {
             if (auto next_formula = std::dynamic_pointer_cast<NextFormula>(formula)) {
                 auto sub_formula = next_formula->getSubFormula()[0];
-                if (state_b.contains(next_formula->getId()) ^ state_b_prime.contains(sub_formula->getId())) {
+                if (state_b->contains(next_formula->getId()) ^ state_b_prime->contains(sub_formula->getId())) {
                     return false;
                 }
             } else if (until_formula_ids.count(formula->getId()) > 0) {
                 auto sub_formulas = formula->getSubFormula();
                 std::shared_ptr<FormulaBase> psi_1 = sub_formulas[0], psi_2 = sub_formulas[1];
-                if ((state_b.contains(formula->getId()) ^ state_b.contains(psi_2->getId()))
-                    || (state_b.contains(psi_1->getId()) && state_b_prime.contains(formula->getId()))) {
+                if ((state_b->contains(formula->getId()) ^ state_b->contains(psi_2->getId()))
+                    || (state_b->contains(psi_1->getId()) && state_b_prime->contains(formula->getId()))) {
                     return false;
                 }
             }
@@ -269,17 +337,19 @@ private:
 
     void buildTransition() {
         // δ(B,A) = ?
-        for (const ElementarySet &state_b: state) {
+        for (int idx_b = 0; idx_b < state.size(); ++idx_b) {
+            std::shared_ptr<ElementarySet> state_b = state[idx_b];
             for (const auto &word: alphabet) {
                 // A ≠ B ∩ AP, δ(B,A) = ⌀
                 if (stateIntersectWord(state_b, word).empty()) {
                     continue;
                 }
                 // A = B ∩ AP,
-                std::pair<ElementarySet, Word> key = std::make_pair(state_b, word);
-                for (const ElementarySet &state_b_prime: state) {
+                std::pair<int, Word> key = std::make_pair(idx_b, word);
+                for (int idx_b_prime = 0; idx_b_prime < state.size(); ++idx_b_prime) {
+                    std::shared_ptr<ElementarySet> state_b_prime = state[idx_b_prime];
                     if (isValidTransition(state_b, state_b_prime)) {
-                        addTransition(key, state_b_prime);
+                        addTransition(key, idx_b_prime);
                     }
                 }
             }
@@ -301,7 +371,7 @@ public:
         std::cout << "=== States ===\t" << state.size() << "\n";
         for (const auto &state_: state) {
             std::cout << "{\n";
-            for (auto formula_id: state_.element) {
+            for (auto formula_id: state_->element) {
                 auto formula = formula_closure[formula_id];
                 std::cout << "\t" << formula_id << "\t" << formula->toString(brief) << ",\n";
             }
@@ -310,9 +380,9 @@ public:
         std::cout << "=== === ===\n";
 
         std::cout << "=== Init States ===\t" << initial_state.size() << "\n";
-        for (const auto &state_: initial_state) {
+        for (const auto &state_id: initial_state) {
             std::cout << "{\n";
-            for (auto formula_id: state_.element) {
+            for (auto formula_id: state[state_id]->element) {
                 auto formula = formula_closure[formula_id];
                 std::cout << "\t" << formula_id << "\t" << formula->toString(brief) << ",\n";
             }
@@ -321,13 +391,17 @@ public:
         std::cout << "=== === ===\n";
 
         std::cout << "=== Final States ===\t" << accepting_state.size() << "\n";
-        for (const auto &state_: accepting_state) {
-            std::cout << "{\n";
-            for (auto formula_id: state_.element) {
-                auto formula = formula_closure[formula_id];
-                std::cout << "\t" << formula_id << "\t" << formula->toString(brief) << ",\n";
+        for (const auto &[key, state_id_set]: accepting_state) {
+            std::cout << key << "\t<<<\n";
+            for (const auto &state_id: state_id_set) {
+                std::cout << "{\n";
+                for (auto formula_id: state[state_id]->element) {
+                    auto formula = formula_closure[formula_id];
+                    std::cout << "\t" << formula_id << "\t" << formula->toString(brief) << ",\n";
+                }
+                std::cout << "}\n";
             }
-            std::cout << "}\n";
+            std::cout << ">>>\n";
         }
         std::cout << "=== === ===\n";
     }
@@ -336,12 +410,21 @@ public:
 /**
  * NBA
  */
-// TODO
-//class NBA : public Automata {
+//class NBA : public Automata<ElementarySetCopy, Word, Word> {
 //public:
 //    // build NBA from GNBA
 //    explicit NBA(const std::shared_ptr<GNBA> &automata) {
-//
+//        auto copy_number = automata->accepting_state.size();
+//        if (copy_number == 0) {
+//            throw NotSupportedError("expect at least one accepting all_state set in GNMA");
+//        }
+//        // Q' = Q x {1, ..., k}
+//        for (auto original_state: automata->all_state) {
+//            for (int i = 0; i < copy_number; ++i) {
+//                // TODO: to be implemented!
+//            }
+//        }
+//        // same alphabet
 //    }
 //};
 

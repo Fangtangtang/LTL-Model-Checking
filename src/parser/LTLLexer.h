@@ -36,8 +36,8 @@ public:
 
   const antlr4::atn::ATN& getATN() const override;
 
-  // By default the static state used to implement the lexer is lazily initialized during the first
-  // call to the constructor. You can call this function if you wish to initialize the static state
+  // By default the static all_state used to implement the lexer is lazily initialized during the first
+  // call to the constructor. You can call this function if you wish to initialize the static all_state
   // ahead of time.
   static void initialize();
 

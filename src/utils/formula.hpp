@@ -283,7 +283,7 @@ public:
             std::size_t pos;
             state_id = std::stoi(formula_tree->children[0]->getText(), &pos);
         } catch (...) {
-            throw InvalidRequestError("The first two input string the state id");
+            throw InvalidRequestError("The first two input string the all_state id");
         }
         std::cout << formula_tree->getText() << "\n";
         auto formula_ptr = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(formula_tree));

@@ -250,8 +250,8 @@ public:
 
   bool formulaSempred(FormulaContext *_localctx, size_t predicateIndex);
 
-  // By default the static state used to implement the parser is lazily initialized during the first
-  // call to the constructor. You can call this function if you wish to initialize the static state
+  // By default the static all_state used to implement the parser is lazily initialized during the first
+  // call to the constructor. You can call this function if you wish to initialize the static all_state
   // ahead of time.
   static void initialize();
 
