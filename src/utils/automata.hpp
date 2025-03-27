@@ -44,7 +44,7 @@ int ElementarySet::counter{0};
  * copy of ElementarySet
  */
 class ElementarySetCopy {
-private:
+public:
     std::shared_ptr<ElementarySet> original;
     int copy_id;
 
@@ -278,6 +278,18 @@ private:
         }
     }
 
+    Word stateIntersectAP(const std::shared_ptr<ElementarySet> &state_b) {
+        std::vector<AtomicProposition> ap_list;
+        for (const int &elem: state_b->element) {
+            if (auto atomic_formula = std::dynamic_pointer_cast<AtomicFormula>(formula_closure[elem])) {
+                if ((!atomic_formula->isTrueFormula())) {
+                    ap_list.push_back(atomic_formula->getAP());
+                }
+            }
+        }
+        return Word(ap_list);
+    }
+
     std::unordered_set<int> stateIntersectWord(const std::shared_ptr<ElementarySet> &state_b, const Word &word) {
         std::unordered_set<int> result;
         for (const int &elem: state_b->element) {
@@ -314,9 +326,11 @@ private:
         // δ(B,A) = ?
         for (int idx_b = 0; idx_b < state.size(); ++idx_b) {
             std::shared_ptr<ElementarySet> state_b = state[idx_b];
+            // B ∩ AP
+            Word b_ap = stateIntersectAP(state_b);
             for (const auto &word: alphabet) {
                 // A ≠ B ∩ AP, δ(B,A) = ⌀
-                if (stateIntersectWord(state_b, word).empty()) {
+                if (!(b_ap == word)) {
                     continue;
                 }
                 // A = B ∩ AP,
@@ -340,12 +354,15 @@ public:
         buildStates();
         printStates(true);
         buildTransition();
+        printTransition(true);
     }
 
     void printStates(bool brief) {
         std::cout << "=== States ===\t" << state.size() << "\n";
+        int idx = 0;
         for (const auto &state_: state) {
-            std::cout << "{\n";
+            std::cout << idx << ": {\n";
+            ++idx;
             for (auto formula_id: state_->element) {
                 auto formula = formula_closure[formula_id];
                 std::cout << "\t" << formula_id << "\t" << formula->toString(brief) << ",\n";
@@ -379,6 +396,17 @@ public:
             std::cout << ">>>\n";
         }
         std::cout << "=== === ===\n";
+    }
+
+    void printTransition(bool brief) {
+        std::cout << "=== GNBA Transition ===\n";
+        for (const auto &[key_pair, state_id_set]: transition) {
+            std::cout << key_pair.first << "\t" << key_pair.second.toString() << "\n==>";
+            for (auto id: state_id_set) {
+                std::cout << "\t" << id << "\n";
+            }
+        }
+        std::cout << "=== === === ===\n";
     }
 };
 
@@ -459,6 +487,54 @@ public:
         } else {
             return {};
         }
+    }
+
+    void printStates(bool brief) {
+        std::cout << "=== States ===\t" << state.size() << "\n";
+        int idx = 0;
+        for (const auto &state_: state) {
+            std::cout << idx << ": {\n";
+            ++idx;
+            for (auto formula_id: state_->original->element) {
+                std::cout << "\t" << formula_id << ",";
+            }
+            std::cout << "\n[" << state_->copy_id << "]\n";
+            std::cout << "}\n";
+        }
+        std::cout << "=== === ===\n";
+
+        std::cout << "=== Init States ===\t" << initial_state.size() << "\n";
+        for (const auto &state_id: initial_state) {
+            std::cout << "{\n";
+            for (auto formula_id: state[state_id]->original->element) {
+                std::cout << "\t" << formula_id << ",";
+            }
+            std::cout << "\n[" << state[state_id]->copy_id << "]\n";
+            std::cout << "}\n";
+        }
+        std::cout << "=== === ===\n";
+
+        std::cout << "=== Final States ===\t" << accepting_state.size() << "\n";
+        for (const auto state_id: accepting_state) {
+            std::cout << "{\n";
+            for (auto formula_id: state[state_id]->original->element) {
+                std::cout << "\t" << formula_id << ",";
+            }
+            std::cout << "\n[" << state[state_id]->copy_id << "]\n";
+            std::cout << "}\n";
+        }
+        std::cout << "=== === ===\n";
+    }
+
+    void printTransition(bool brief) {
+        std::cout << "=== NBA Transition ===\n";
+        for (const auto &[key_pair, state_id_set]: transition) {
+            std::cout << key_pair.first << "\t" << key_pair.second.toString() << "\n==>";
+            for (auto id: state_id_set) {
+                std::cout << "\t" << id << "\n";
+            }
+        }
+        std::cout << "=== === === ===\n";
     }
 };
 

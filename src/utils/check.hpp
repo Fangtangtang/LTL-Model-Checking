@@ -21,7 +21,7 @@ private:
     bool cycle_found = false;
 
 private:
-    bool cycleCheck(int id, StateWrapper<std::pair<int, int>, int> s) {
+    bool cycleCheck(int id) {
         bool found = false;
         V.push(id);
         T.emplace(id);
@@ -62,7 +62,7 @@ private:
             } else {
                 U.pop();
                 if (F.count(top_s.ap) > 0) {
-                    cycle_found = cycleCheck(top_s_id, top_s);
+                    cycle_found = cycleCheck(top_s_id);
                 }
             }
             if (U.empty() || cycle_found) {
@@ -127,7 +127,6 @@ public:
             }
         }
     }
-
 
     // check by nested DFS
     bool check() {

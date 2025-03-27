@@ -42,13 +42,23 @@ public:
 
     explicit Word(std::vector<AtomicProposition> ap_list) : aps(std::move(ap_list)) {
         std::sort(aps.begin(), aps.end());
+        word.append("{");
         for (const auto &ap: aps) {
-            word = word.append(ap.toString());
+            word.append(ap.toString());
         }
+        word.append("}");
+    }
+
+    [[nodiscard]]  std::string toString() const noexcept {
+        return word;
     }
 
     bool operator<(const Word &other) const {
         return word < other.word;
+    }
+
+    bool operator==(const Word &other) const {
+        return word == other.word;
     }
 
     [[nodiscard]] bool contains(const AtomicProposition &ap) const {

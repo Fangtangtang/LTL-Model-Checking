@@ -63,6 +63,8 @@ bool check(const std::pair<int, std::shared_ptr<FormulaBase>> &formula, const Tr
     GNBA gnba(negation_formula);
     // Build NBA
     NBA nba(gnba);
+    nba.printStates(true);
+    nba.printTransition(true);
     // TS (x) NBA
     TransitionSystemProductNBA checked_ts(ts, nba, formula.first);
     // checking algorithm
