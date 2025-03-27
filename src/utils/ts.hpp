@@ -64,6 +64,10 @@ public:
     [[nodiscard]] bool contains(const AtomicProposition &ap) const {
         return std::find(aps.begin(), aps.end(), ap) != aps.end();
     }
+
+    [[nodiscard]] bool contains(const Word &other) const {
+        return std::includes(other.aps.begin(), other.aps.end(), aps.begin(), aps.end());
+    }
 };
 
 template<typename InnerType, typename WordType>

@@ -82,6 +82,11 @@ private:
     }
 
 public:
+    /**
+     * @param ts Transition System on AP
+     * @param nba NBA for formula on AP'⊂ AP
+     * @param state_id
+     */
     TransitionSystemProductNBA(const TransitionSystem &ts, const NBA &nba, int state_id) {
         // states
         S = ts.getStates();
@@ -94,7 +99,7 @@ public:
                 state.push_back(new_state);
             }
         }
-        // transition
+        // transition_map
         for (int s_idx = 0; s_idx < S.size(); ++s_idx) {
             for (int q_idx = 0; q_idx < Q.size(); ++q_idx) {
                 StateWrapper<int, Word> ts_state = S[s_idx];
@@ -102,7 +107,7 @@ public:
                 for (auto t_idx: ts_state.successor) {
                     // q --L(t)--> p
                     Word l_t = S[t_idx].ap;
-                    std::unordered_set<int> valid_p = nba.getTransition({q_idx, l_t});
+                    std::unordered_set<int> valid_p = nba.getTransition(q_idx, l_t);
                     for (auto p_idx: valid_p) {
                         state[s_idx * Q.size() + q_idx].successor.emplace(t_idx * Q.size() + p_idx);
                     }
@@ -120,7 +125,7 @@ public:
             for (int q0_idx: init_q) {
                 Word l_init = S[init_idx].ap;
                 // q0 --L(s0)--> q
-                std::unordered_set<int> valid_q = nba.getTransition({q0_idx, l_init});
+                std::unordered_set<int> valid_q = nba.getTransition(q0_idx, l_init);
                 for (auto q_idx: valid_q) {
                     initial_state.emplace(init_idx * Q.size() + q_idx);
                 }

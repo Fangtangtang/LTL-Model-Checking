@@ -73,8 +73,7 @@ public:
 
     std::unordered_set<int> initial_state; // Q_0
 
-    std::map<std::pair<int, TransitCondition>, std::unordered_set<int>> transition; // δ
-
+    std::map<int, std::map<TransitCondition, std::unordered_set<int>>> transition;
 public:
     virtual ~Automata() = default;
 
@@ -96,12 +95,20 @@ public:
         initial_state.emplace(index_in_state);
     }
 
-    void addTransition(std::pair<int, TransitCondition> key, int value) {
-        auto it = transition.find(key);
+    void addTransition(int key_l1, TransitCondition key_l2, int value) {
+        auto it = transition.find(key_l1);
         if (it != transition.end()) {
-            it->second.insert(value);
+            auto iter = it->second.find(key_l2);
+            if (iter != it->second.end()) {
+                iter->second.insert(value);
+            } else {
+                it->second[key_l2] = {value};
+            }
         } else {
-            transition[key] = {value};
+            std::map<TransitCondition, std::unordered_set<int>> map_l2;
+            map_l2[key_l2] = {value};
+            transition.emplace(key_l1, map_l2);
+            return;
         }
     }
 };
@@ -330,7 +337,7 @@ private:
                 for (int idx_b_prime = 0; idx_b_prime < state.size(); ++idx_b_prime) {
                     std::shared_ptr<ElementarySet> state_b_prime = state[idx_b_prime];
                     if (isValidTransition(state_b, state_b_prime)) {
-                        addTransition(key, idx_b_prime);
+                        addTransition(idx_b, word, idx_b_prime);
                     }
                 }
             }
@@ -392,15 +399,16 @@ public:
 
     void printTransition(bool brief) {
         std::cout << "=== GNBA Transition ===\n";
-        for (const auto &[key_pair, state_id_set]: transition) {
-            std::cout << key_pair.first << "\t" << key_pair.second.toString() << "\n==>";
-            for (auto id: state_id_set) {
-                std::cout << "\t" << id << "\n";
+        for (const auto &[key_l1, map_l2]: transition) {
+            for (const auto &[key_l2, id_set]: map_l2) {
+                std::cout << key_l1 << "\t" << key_l2.toString() << "\n==>";
+                for (auto id: id_set) {
+                    std::cout << "\t" << id << "\n";
+                }
             }
         }
         std::cout << "=== === === ===\n";
     }
-
 };
 
 /**
@@ -445,19 +453,20 @@ public:
         // same alphabet
         alphabet = automata.alphabet;
         // transition
-        for (const auto &[key_pair, state_id_set]: automata.transition) {
+        for (const auto &[org_src_state_idx, map_l2]: automata.transition) {
             for (int copy_id = 1; copy_id <= copy_number; ++copy_id) {
-                int org_src_state_idx = key_pair.first;
                 int src_state_idx = state_map[{org_src_state_idx, copy_id}];
-                for (int org_dst_state_idx: state_id_set) { // (org_src_state_idx, key_pair.second) -> org_dst_state_idx
-                    int dst_state_idx;
-                    if (accepting_states_in_gnba[copy_id - 1].count(org_src_state_idx) > 0) {
-                        int next_copy_id = copy_id + 1 > copy_number ? copy_id + 1 - copy_number : copy_id + 1;
-                        dst_state_idx = state_map[{org_dst_state_idx, next_copy_id}];
-                    } else {
-                        dst_state_idx = state_map[{org_dst_state_idx, copy_id}];
+                for (const auto &[word, state_id_set]: map_l2) {
+                    for (int org_dst_state_idx: state_id_set) { // (org_src_state_idx, key_pair.second) -> org_dst_state_idx
+                        int dst_state_idx;
+                        if (accepting_states_in_gnba[copy_id - 1].count(org_src_state_idx) > 0) {
+                            int next_copy_id = copy_id + 1 > copy_number ? copy_id + 1 - copy_number : copy_id + 1;
+                            dst_state_idx = state_map[{org_dst_state_idx, next_copy_id}];
+                        } else {
+                            dst_state_idx = state_map[{org_dst_state_idx, copy_id}];
+                        }
+                        addTransition(src_state_idx, word, dst_state_idx);
                     }
-                    addTransition(std::make_pair(src_state_idx, key_pair.second), dst_state_idx);
                 }
             }
         }
@@ -475,13 +484,21 @@ public:
         return state;
     }
 
-    std::unordered_set<int> getTransition(const std::pair<int, Word> &key) const {
-        auto it = transition.find(key);
+    std::unordered_set<int> getTransition(int src_id, const Word &word) const {
+        auto it = transition.find(src_id);
+        std::map<Word, std::unordered_set<int>> map;
+        std::unordered_set<int> ret;
         if (it != transition.end()) {
-            return it->second;
+            map = it->second;
         } else {
-            return {};
+            return ret;
         }
+        for (const auto &[key, id_set]: map) {
+            if (word.contains(key)) {
+                ret.insert(id_set.begin(), id_set.end());
+            }
+        }
+        return ret;
     }
 
     void printStates(bool brief) {
@@ -523,10 +540,12 @@ public:
 
     void printTransition(bool brief) {
         std::cout << "=== NBA Transition ===\n";
-        for (const auto &[key_pair, state_id_set]: transition) {
-            std::cout << key_pair.first << "\t" << key_pair.second.toString() << "\n==>";
-            for (auto id: state_id_set) {
-                std::cout << "\t" << id << "\n";
+        for (const auto &[key_l1, map_l2]: transition) {
+            for (const auto &[key_l2, id_set]: map_l2) {
+                std::cout << key_l1 << "\t" << key_l2.toString() << "\n==>";
+                for (auto id: id_set) {
+                    std::cout << "\t" << id << "\n";
+                }
             }
         }
         std::cout << "=== === === ===\n";
