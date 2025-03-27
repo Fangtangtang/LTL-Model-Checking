@@ -137,6 +137,43 @@ public:
         }
         return !cycle_found;
     }
+
+    void print() {
+        std::cout << "=== States ===\t" << state.size() << "\n";
+        int idx = 0;
+        for (const auto &state_: state) {
+            std::cout << idx << "\t<" << state_.inner.first << ", " << state_.inner.second << ">\t"
+                      << state_.ap << "\n";
+            ++idx;
+        }
+        std::cout << "=== === ===\n";
+
+        std::cout << "=== Init States ===\t" << initial_state.size() << "\n";
+        for (const auto &state_id: initial_state) {
+            std::cout << state_id << "\t<" << state[state_id].inner.first << ", " << state[state_id].inner.second
+                      << ">\t" << state[state_id].ap << "\n";
+        }
+        std::cout << "=== === ===\n";
+
+        std::cout << "=== Final States ===\t" << F.size() << "\n";
+        for (const auto state_id: F) {
+            std::cout << state_id << "\t<" << state[state_id].inner.first << ", " << state[state_id].inner.second
+                      << ">\t" << state[state_id].ap << "\n";
+        }
+        std::cout << "=== === ===\n";
+
+        std::cout << "=== Transition ===\n";
+        for (int i = 0; i < state.size(); ++i) {
+            std::cout << i << "\t==>";
+            if (!state[i].successor.empty()) {
+                for (auto next: state[i].successor) {
+                    std::cout << "\t" << next;
+                }
+            }
+            std::cout << "\n";
+        }
+        std::cout << "=== === === ===\n";
+    }
 };
 
 #endif //LTL_MODEL_CHECKING_CHECK_HPP

@@ -140,7 +140,7 @@ public:
             std::getline(ts_file, line);
             std::istringstream label_stream(line);
             std::vector<AtomicProposition> label_ap;
-            while (ap_stream >> label) {
+            while (label_stream >> label) {
                 label_ap.push_back(getAtomicProposition(ap_list[label]));
             }
             state[i].ap = Word(label_ap);

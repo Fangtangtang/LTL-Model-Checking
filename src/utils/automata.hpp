@@ -290,31 +290,23 @@ private:
         return Word(ap_list);
     }
 
-    std::unordered_set<int> stateIntersectWord(const std::shared_ptr<ElementarySet> &state_b, const Word &word) {
-        std::unordered_set<int> result;
-        for (const int &elem: state_b->element) {
-            if (auto atomic_formula = std::dynamic_pointer_cast<AtomicFormula>(formula_closure[elem])) {
-                if ((!atomic_formula->isTrueFormula()) && word.contains(atomic_formula->getAP())) {
-                    result.insert(elem);
-                }
-            }
-        }
-        return result;
-    }
-
     bool isValidTransition(const std::shared_ptr<ElementarySet> &state_b,
                            const std::shared_ptr<ElementarySet> &state_b_prime) {
         for (const auto &formula: formula_closure) {
-            if (auto next_formula = std::dynamic_pointer_cast<NextFormula>(formula)) {
+            if (auto next_formula = std::dynamic_pointer_cast<NextFormula>(formula)) { // next formula
                 auto sub_formula = next_formula->getSubFormula()[0];
                 if (state_b->contains(next_formula->getId()) ^ state_b_prime->contains(sub_formula->getId())) {
                     return false;
                 }
-            } else if (until_formula_ids.count(formula->getId()) > 0) {
+            } else if (until_formula_ids.count(formula->getId()) > 0) { // until formula
                 auto sub_formulas = formula->getSubFormula();
                 std::shared_ptr<FormulaBase> psi_1 = sub_formulas[0], psi_2 = sub_formulas[1];
-                if ((state_b->contains(formula->getId()) ^ state_b->contains(psi_2->getId()))
-                    || (state_b->contains(psi_1->getId()) && state_b_prime->contains(formula->getId()))) {
+                // ψ1 ∪ ψ2 ∈ B
+                bool cond1 = state_b->contains(formula->getId());
+                // ψ2 ∈ B ∨ (ψ1 ∈ B ∧ ψ1 ∪ ψ2 ∈ B')
+                bool cond2 = state_b->contains(psi_2->getId()) ||
+                             (state_b->contains(psi_1->getId()) && state_b_prime->contains(formula->getId()));
+                if (cond1 ^ cond2) {
                     return false;
                 }
             }
@@ -382,9 +374,9 @@ public:
         }
         std::cout << "=== === ===\n";
 
-        std::cout << "=== Final States ===\t" << accepting_state.size() << "\n";
+        std::cout << "=== Final States ===\t" << accepting_state.size() << " sets\n";
         for (const auto &[key, state_id_set]: accepting_state) {
-            std::cout << key << "\t<<<\n";
+            std::cout << "[" << key << "]: " << state_id_set.size() << "\t<<<\n";
             for (const auto &state_id: state_id_set) {
                 std::cout << "{\n";
                 for (auto formula_id: state[state_id]->element) {
@@ -408,6 +400,7 @@ public:
         }
         std::cout << "=== === === ===\n";
     }
+
 };
 
 /**
@@ -455,10 +448,12 @@ public:
         for (const auto &[key_pair, state_id_set]: automata.transition) {
             for (int copy_id = 1; copy_id <= copy_number; ++copy_id) {
                 int org_src_state_idx = key_pair.first;
+                int src_state_idx = state_map[{org_src_state_idx, copy_id}];
                 for (int org_dst_state_idx: state_id_set) { // (org_src_state_idx, key_pair.second) -> org_dst_state_idx
-                    int src_state_idx = state_map[{org_src_state_idx, copy_id}], dst_state_idx;
+                    int dst_state_idx;
                     if (accepting_states_in_gnba[copy_id - 1].count(org_src_state_idx) > 0) {
-                        dst_state_idx = state_map[{org_dst_state_idx, copy_id + 1}];
+                        int next_copy_id = copy_id + 1 > copy_number ? copy_id + 1 - copy_number : copy_id + 1;
+                        dst_state_idx = state_map[{org_dst_state_idx, next_copy_id}];
                     } else {
                         dst_state_idx = state_map[{org_dst_state_idx, copy_id}];
                     }
