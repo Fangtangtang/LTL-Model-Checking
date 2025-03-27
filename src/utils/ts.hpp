@@ -70,7 +70,7 @@ public:
             const std::unordered_set<AtomicProposition, AtomicProposition::Hash> &care
     ) const {
         std::vector<AtomicProposition> tmp;
-        for (const AtomicProposition& ap: aps) {
+        for (const AtomicProposition &ap: aps) {
             if (care.count(ap) > 0) {
                 tmp.push_back(ap);
             }
@@ -155,6 +155,9 @@ public:
             std::istringstream label_stream(line);
             std::vector<AtomicProposition> label_ap;
             while (label_stream >> label) {
+                if (label == -1) { // ⌀
+                    break;
+                }
                 label_ap.push_back(getAtomicProposition(ap_list[label]));
             }
             state[i].ap = Word(label_ap);

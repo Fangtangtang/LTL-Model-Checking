@@ -193,7 +193,6 @@ public:
     explicit FormulaBuilder(const TransitionSystem &transitionSystem) : ts(transitionSystem) {}
 
     void parseSystemFormula(antlr4::tree::ParseTree *formula_tree) {
-        std::cout << formula_tree->getText() << "\n";
         auto formula_ptr = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(formula_tree));
         formulas.emplace_back(-1, formula_ptr);
     }
@@ -206,7 +205,6 @@ public:
         } catch (...) {
             throw InvalidRequestError("The first two input string the all_state id");
         }
-        std::cout << formula_tree->getText() << "\n";
         auto formula_ptr = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(formula_tree));
         formulas.emplace_back(state_id, formula_ptr);
     }

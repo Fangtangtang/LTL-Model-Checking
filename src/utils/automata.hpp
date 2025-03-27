@@ -166,16 +166,16 @@ private:
             reformat(sub_formula.second, stringToId, use_brief_string);
         }
         // ------------------------------------------------------
-        std::cout << "===Closure===\n";
-        for (const auto &sub_formula: closure) {
-            std::cout << sub_formula.second->toString(true) << "\n";
-        }
-        std::cout << "======\n";
-        std::cout << "===AP===\n";
-        for (const auto &ap: AP) {
-            std::cout << ap.toString() << "\n";
-        }
-        std::cout << "======\n";
+//        std::cout << "===Closure===\n";
+//        for (const auto &sub_formula: closure) {
+//            std::cout << sub_formula.second->toString(true) << "\n";
+//        }
+//        std::cout << "======\n";
+//        std::cout << "===AP===\n";
+//        for (const auto &ap: AP) {
+//            std::cout << ap.toString() << "\n";
+//        }
+//        std::cout << "======\n";
         // ------------------------------------------------------
     }
 
@@ -351,9 +351,9 @@ public:
         getClosureAndAP();
         buildAlphabet();
         buildStates();
-        printStates(true);
+//        printStates(true);
         buildTransition();
-        printTransition(true);
+//        printTransition(true);
     }
 
     void printStates(bool brief) {

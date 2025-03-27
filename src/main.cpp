@@ -29,8 +29,6 @@ std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(
     } catch (...) {
         throw InvalidRequestError("The first two input string should be 2 integers indicating the number of formulas.");
     }
-    std::cout << system_formula_number << "\n";
-    std::cout << state_formula_number << "\n";
 
     // validity check: parsed into 2 int, some formulas, <EOF>
     if (tree->children.size() != system_formula_number + state_formula_number + 3) {
@@ -48,7 +46,7 @@ std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> parseFormulas(
         formulaBuilder.parseStateFormula(tree->children.at(iter));
         ++iter;
     }
-    formulaBuilder.printFormulas(true);
+//    formulaBuilder.printFormulas(true);
     return formulaBuilder.formulas;
 }
 
@@ -63,20 +61,20 @@ bool check(const std::pair<int, std::shared_ptr<FormulaBase>> &formula, const Tr
     GNBA gnba(negation_formula);
     // Build NBA
     NBA nba(gnba);
-    nba.printStates(true);
-    nba.printTransition(true);
+//    nba.printStates(true);
+//    nba.printTransition(true);
     // TS (x) NBA
     TransitionSystemProductNBA checked_ts(ts, nba, formula.first);
-    checked_ts.print();
+//    checked_ts.print();
     // checking algorithm
     return checked_ts.check();
 }
 
 int main() {
     try {
-        TransitionSystem transition_system("/mnt/f/repo/LTL-Model-Checking/testcases/2-TS.txt");
+        TransitionSystem transition_system("/mnt/f/repo/LTL-Model-Checking/testcases/1-TS.txt");
 
-        std::ifstream formula_file("/mnt/f/repo/LTL-Model-Checking/testcases/2-LTL-formulas.txt");
+        std::ifstream formula_file("/mnt/f/repo/LTL-Model-Checking/testcases/1-LTL-formulas.txt");
         if (!formula_file) {
             std::cerr << "Failed to open formula_file\n";
             return 1;
@@ -86,21 +84,21 @@ int main() {
         std::vector<std::pair<int, std::shared_ptr<FormulaBase>>> formulas = parseFormulas(
                 formula_stream, transition_system);
 
-        std::vector<int> ans;
+//        std::vector<int> ans;
         for (const auto &formula: formulas) {
             if (check(formula, transition_system)) {
                 std::cout << 1 << "\n";
-                ans.push_back(1);
+//                ans.push_back(1);
             } else {
                 std::cout << 0 << "\n";
-                ans.push_back(0);
+//                ans.push_back(0);
             }
         }
-
-        std::cout << "\n\n";
-        for (int a: ans) {
-            std::cout << a << "\t";
-        }
+//
+//        std::cout << "\n\n";
+//        for (int a: ans) {
+//            std::cout << a << "\t";
+//        }
     } catch (const Exception &e) {
         std::cerr << e.what() << std::endl;
     }
