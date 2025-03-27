@@ -69,6 +69,9 @@ class Automata {
 public:
     // all states are referred though index in this array
     std::vector<std::shared_ptr<StateType>> state; // Q
+
+    std::unordered_set<int> AP_formula_ids;
+    std::unordered_set<AtomicProposition, AtomicProposition::Hash> AP;
     std::vector<AlphabetType> alphabet; // Σ
 
     std::unordered_set<int> initial_state; // Q_0
@@ -128,9 +131,6 @@ private:
     int true_formula_id = -1;
     std::vector<std::shared_ptr<FormulaBase>> formula_closure;
     std::unordered_set<int> until_formula_ids;
-
-    std::unordered_set<int> AP_formula_ids;
-    std::unordered_set<AtomicProposition, AtomicProposition::Hash> AP;
 private:
 
     void reformat(const std::shared_ptr<FormulaBase> &formula, std::map<std::string, int> stringToId,
@@ -451,6 +451,8 @@ public:
             }
         }
         // same alphabet
+        AP = automata.AP;
+        AP_formula_ids = automata.AP_formula_ids;
         alphabet = automata.alphabet;
         // transition
         for (const auto &[org_src_state_idx, map_l2]: automata.transition) {
@@ -494,7 +496,7 @@ public:
             return ret;
         }
         for (const auto &[key, id_set]: map) {
-            if (word.contains(key)) {
+            if (word.equal(key, AP)) {
                 ret.insert(id_set.begin(), id_set.end());
             }
         }

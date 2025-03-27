@@ -74,9 +74,9 @@ bool check(const std::pair<int, std::shared_ptr<FormulaBase>> &formula, const Tr
 
 int main() {
     try {
-        TransitionSystem transition_system("/mnt/f/repo/LTL-Model-Checking/testcases/1-TS.txt");
+        TransitionSystem transition_system("/mnt/f/repo/LTL-Model-Checking/testcases/2-TS.txt");
 
-        std::ifstream formula_file("/mnt/f/repo/LTL-Model-Checking/testcases/1-LTL-formulas.txt");
+        std::ifstream formula_file("/mnt/f/repo/LTL-Model-Checking/testcases/2-LTL-formulas.txt");
         if (!formula_file) {
             std::cerr << "Failed to open formula_file\n";
             return 1;

@@ -65,8 +65,18 @@ public:
         return std::find(aps.begin(), aps.end(), ap) != aps.end();
     }
 
-    [[nodiscard]] bool contains(const Word &other) const {
-        return std::includes(other.aps.begin(), other.aps.end(), aps.begin(), aps.end());
+    [[nodiscard]] bool equal(
+            const Word &other,
+            const std::unordered_set<AtomicProposition, AtomicProposition::Hash> &care
+    ) const {
+        std::vector<AtomicProposition> tmp;
+        for (const AtomicProposition& ap: aps) {
+            if (care.count(ap) > 0) {
+                tmp.push_back(ap);
+            }
+        }
+        Word tmp_word(tmp);
+        return tmp_word == other;
     }
 };
 
@@ -165,10 +175,6 @@ public:
 
     std::vector<StateWrapper<int, Word>> getStates() const {
         return state;
-    }
-
-    StateWrapper<int, Word> getState(int id) const {
-        return state[id];
     }
 };
 

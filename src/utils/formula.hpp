@@ -102,47 +102,6 @@ public:
     }
 };
 
-class DisjunctionFormula : public FormulaBase {
-private:
-    std::shared_ptr<FormulaBase> left_formula, right_formula;
-
-public:
-    DisjunctionFormula(std::shared_ptr<FormulaBase> left, std::shared_ptr<FormulaBase> right)
-            : left_formula(std::move(left)), right_formula(std::move(right)) {}
-
-    [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {left_formula, right_formula};
-    }
-
-    [[nodiscard]] std::string toString(bool brief) const noexcept override {
-        if (brief) {
-            return "(" + left_formula->toString(brief) + " ∨ " + right_formula->toString(brief) + ")";
-        }
-        return "[\033[33mDisjunction \033[0m" + left_formula->toString(brief) + " ∨ "
-               + right_formula->toString(brief) + "]";
-    }
-};
-
-class ImplicationFormula : public FormulaBase {
-private:
-    std::shared_ptr<FormulaBase> left_formula, right_formula;
-public:
-    ImplicationFormula(std::shared_ptr<FormulaBase> left, std::shared_ptr<FormulaBase> right)
-            : left_formula(std::move(left)), right_formula(std::move(right)) {}
-
-    [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {left_formula, right_formula};
-    }
-
-    [[nodiscard]] std::string toString(bool brief) const noexcept override {
-        if (brief) {
-            return "(" + left_formula->toString(brief) + " → " + right_formula->toString(brief) + ")";
-        }
-        return "[\033[33mImplication \033[0m" + left_formula->toString(brief) + " → "
-               + right_formula->toString(brief) + "]";
-    }
-};
-
 class NegationFormula : public FormulaBase {
 private:
     std::shared_ptr<FormulaBase> sub_formula;
@@ -180,44 +139,6 @@ public:
             return "(○" + sub_formula->toString(brief) + ")";
         }
         return "[\033[33mNext \033[0m○" + sub_formula->toString(brief) + "]";
-    }
-};
-
-class AlwaysFormula : public FormulaBase {
-private:
-    std::shared_ptr<FormulaBase> sub_formula;
-public:
-    explicit AlwaysFormula(std::shared_ptr<FormulaBase> formula)
-            : sub_formula(std::move(formula)) {}
-
-    [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {sub_formula};
-    }
-
-    [[nodiscard]] std::string toString(bool brief) const noexcept override {
-        if (brief) {
-            return "(▢" + sub_formula->toString(brief) + ")";
-        }
-        return "[\033[33mAlways \033[0m▢" + sub_formula->toString(brief) + "]";
-    }
-};
-
-class EventuallyFormula : public FormulaBase {
-private:
-    std::shared_ptr<FormulaBase> sub_formula;
-public:
-    explicit EventuallyFormula(std::shared_ptr<FormulaBase> formula)
-            : sub_formula(std::move(formula)) {}
-
-    [[nodiscard]]  std::vector<std::shared_ptr<FormulaBase>> getSubFormula() const override {
-        return {sub_formula};
-    }
-
-    [[nodiscard]] std::string toString(bool brief) const noexcept override {
-        if (brief) {
-            return "(◇" + sub_formula->toString(brief) + ")";
-        }
-        return "[\033[33mEventually \033[0m◇" + sub_formula->toString(brief) + "]";
     }
 };
 
@@ -329,12 +250,14 @@ private:
         );
     }
 
+    // ▢φ = !◇!φ = !(true U (!φ))
     std::any visitAlwaysFormula(LTLParser::AlwaysFormulaContext *ctx) override {
-        return std::static_pointer_cast<FormulaBase>(
-                std::make_shared<AlwaysFormula>(
-                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()))
-                )
+        auto phi = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()));
+        auto eventuallyNegPhi = std::make_shared<UntilFormula>(
+                std::make_shared<AtomicFormula>(ts.getAtomicProposition("true"), true),
+                std::make_shared<NegationFormula>(phi)
         );
+        return std::static_pointer_cast<FormulaBase>(std::make_shared<NegationFormula>(eventuallyNegPhi));
     }
 
     std::any visitUntilFormula(LTLParser::UntilFormulaContext *ctx) override {
@@ -348,7 +271,8 @@ private:
 
     std::any visitEventuallyFormula(LTLParser::EventuallyFormulaContext *ctx) override {
         return std::static_pointer_cast<FormulaBase>(
-                std::make_shared<EventuallyFormula>(
+                std::make_shared<UntilFormula>(
+                        std::make_shared<AtomicFormula>(ts.getAtomicProposition("true"), true),
                         std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula()))
                 )
         );
@@ -360,11 +284,15 @@ private:
         );
     }
 
+    // φ1 ∨ φ2 = !(!φ1 ∧ !φ2)
     std::any visitDisjunctionFormula(LTLParser::DisjunctionFormulaContext *ctx) override {
+        auto neg_phi_1 = std::make_shared<NegationFormula>(
+                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0))));
+        auto neg_phi_2 = std::make_shared<NegationFormula>(
+                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1))));
         return std::static_pointer_cast<FormulaBase>(
-                std::make_shared<DisjunctionFormula>(
-                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0))),
-                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1)))
+                std::make_shared<NegationFormula>(
+                        std::make_shared<ConjunctionFormula>(neg_phi_1, neg_phi_2)
                 )
         );
     }
@@ -375,12 +303,13 @@ private:
         );
     }
 
+    // φ1 → φ2 = !φ1 ∨ φ2 = !(φ1 ∧ !φ2)
     std::any visitImplicationFormula(LTLParser::ImplicationFormulaContext *ctx) override {
+        auto phi_1 = std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0)));
+        auto neg_phi_2 = std::make_shared<NegationFormula>(
+                std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1))));
         return std::static_pointer_cast<FormulaBase>(
-                std::make_shared<ImplicationFormula>(
-                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(0))),
-                        std::any_cast<std::shared_ptr<FormulaBase>>(this->visit(ctx->formula(1)))
-                )
+                std::make_shared<NegationFormula>(std::make_shared<ConjunctionFormula>(phi_1, neg_phi_2))
         );
     }
 
