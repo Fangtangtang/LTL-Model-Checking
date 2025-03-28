@@ -10,7 +10,7 @@
 
 class AtomicProposition {
 private:
-    int id;
+    int id = -1;
     std::string name;
 public:
     explicit AtomicProposition(int ap_id, std::string ap) : id(ap_id), name(std::move(ap)) {}
@@ -19,6 +19,10 @@ public:
 
     bool operator==(const AtomicProposition &other) const {
         return name == other.name;
+    }
+
+    bool isTrue() const {
+        return id < 0;
     }
 
     [[nodiscard]] std::string toString() const noexcept {
@@ -34,6 +38,7 @@ public:
 
 class Word {
 private:
+    bool is_true = false;
     std::vector<AtomicProposition> aps;
     std::string word;
 
@@ -44,9 +49,19 @@ public:
         std::sort(aps.begin(), aps.end());
         word.append("{");
         for (const auto &ap: aps) {
+            if (ap.isTrue()) {
+                if (ap_list.size() != 1) {
+                    throw RuntimeError("invalid word");
+                }
+                is_true = true;
+            }
             word.append(ap.toString());
         }
         word.append("}");
+    }
+
+    bool isTrue() const {
+        return is_true;
     }
 
     [[nodiscard]]  std::string toString() const noexcept {
@@ -61,22 +76,23 @@ public:
         return word == other.word;
     }
 
-    [[nodiscard]] bool contains(const AtomicProposition &ap) const {
-        return std::find(aps.begin(), aps.end(), ap) != aps.end();
-    }
-
     [[nodiscard]] bool equal(
             const Word &other,
             const std::unordered_set<AtomicProposition, AtomicProposition::Hash> &care
     ) const {
-        std::vector<AtomicProposition> tmp;
+        std::vector<AtomicProposition> tmp_this, tmp_other;
         for (const AtomicProposition &ap: aps) {
             if (care.count(ap) > 0) {
-                tmp.push_back(ap);
+                tmp_this.push_back(ap);
             }
         }
-        Word tmp_word(tmp);
-        return tmp_word == other;
+        for (const AtomicProposition &ap: other.aps) {
+            if (care.count(ap) > 0) {
+                tmp_other.push_back(ap);
+            }
+        }
+        Word this_word(tmp_this), other_word(tmp_other);
+        return this_word == other_word;
     }
 };
 

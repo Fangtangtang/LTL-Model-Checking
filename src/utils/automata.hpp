@@ -347,12 +347,11 @@ private:
 public:
     // build GNBA
     explicit GNBA(const std::shared_ptr<FormulaBase> &formula) : phi(formula) {
-        // Find Elementary Sets
         getClosureAndAP();
         buildAlphabet();
         buildStates();
-//        printStates(true);
         buildTransition();
+//        printStates(true);
 //        printTransition(true);
     }
 
@@ -496,7 +495,7 @@ public:
             return ret;
         }
         for (const auto &[key, id_set]: map) {
-            if (word.equal(key, AP)) {
+            if (key.isTrue() || word.equal(key, AP)) {
                 ret.insert(id_set.begin(), id_set.end());
             }
         }
