@@ -442,7 +442,7 @@ public:
                     if (automata.initial_state.count(original_state_idx) > 0) {
                         addInitState(state_idx);
                     }
-                    // F' = F_1 x {1}
+                    // F' = F x {1}
                     if (accepting_states_in_gnba[0].count(original_state_idx) > 0) {
                         accepting_state.emplace(state_idx);
                     }
